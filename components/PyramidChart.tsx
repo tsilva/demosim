@@ -14,9 +14,10 @@ import { YearData } from '../types';
 interface Props {
   data: YearData;
   retirementAge: number;
+  medianAge?: number;
 }
 
-const PyramidChart: React.FC<Props> = ({ data, retirementAge }) => {
+const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
   // Find max population for symmetric axis
   const maxPop = Math.max(...data.population.map(g => g.male + g.female)) / 2;
 
@@ -115,6 +116,14 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge }) => {
               strokeDasharray="3 3"
               label={{ position: 'right', value: 'Retirement', fill: '#fbbf24', fontSize: 9 }}
             />
+            {medianAge !== undefined && (
+              <ReferenceLine
+                y={Math.round(medianAge)}
+                stroke="#a78bfa"
+                strokeWidth={2}
+                label={{ position: 'left', value: `Median ${medianAge.toFixed(1)}`, fill: '#a78bfa', fontSize: 9 }}
+              />
+            )}
             <Bar dataKey="left" barSize={5}>
               {chartData.map((entry, index) => (
                 <Cell
