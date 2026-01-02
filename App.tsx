@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, BrainCircuit } from 'lucide-react';
-import { YearData, SimulationParams } from './types';
+import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
 import { runSimulation } from './utils/simulation';
 import { getDemographicAnalysis } from './services/gemini';
 import PyramidChart from './components/PyramidChart';
@@ -13,10 +13,12 @@ const App: React.FC = () => {
   // --- State ---
   const [currentYear, setCurrentYear] = useState(START_YEAR);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('medium');
   const [params, setParams] = useState<SimulationParams>({
     retirementAge: 66, // Portugal's current baseline is 66y 5m (2025), using 66 for slider
     fertilityRate: 1.40, // INE 2024: TFR decreased to 1.40 children per woman
     netMigration: 110000, // INE 2024: Net migration +109,909 people
+    mortalityImprovement: { male: 0.010, female: 0.008 }, // Default medium scenario
   });
   
   // Cache simulation results so scrubbing is instant
@@ -36,12 +38,34 @@ const App: React.FC = () => {
   const reset = () => {
     setIsPlaying(false);
     setCurrentYear(START_YEAR);
+    setSelectedScenario('medium');
     setParams({
       retirementAge: 66,
       fertilityRate: 1.40,
       netMigration: 110000,
+      mortalityImprovement: { male: 0.010, female: 0.008 },
     });
     setAiAnalysis(null);
+  };
+
+  // Handle scenario selection
+  const handleScenarioChange = (scenario: ScenarioType) => {
+    setSelectedScenario(scenario);
+    if (scenario !== 'custom') {
+      const preset = SCENARIO_PRESETS[scenario];
+      setParams(prev => ({
+        ...prev,
+        fertilityRate: preset.params.fertilityRate,
+        netMigration: preset.params.netMigration,
+        mortalityImprovement: preset.params.mortalityImprovement,
+      }));
+    }
+  };
+
+  // Handle manual parameter change (auto-switches to custom)
+  const handleParamChange = <K extends keyof SimulationParams>(key: K, value: SimulationParams[K]) => {
+    setSelectedScenario('custom');
+    setParams(prev => ({ ...prev, [key]: value }));
   };
 
   const handleAnalysis = useCallback(async () => {
@@ -109,16 +133,44 @@ const App: React.FC = () => {
             </div>
             
             <div className="space-y-6">
+              {/* Scenario Selection */}
+              <div>
+                <label className="text-xs text-slate-400 mb-2 block">Projection Scenario</label>
+                <div className="grid grid-cols-4 gap-1">
+                  {(['low', 'medium', 'high', 'custom'] as ScenarioType[]).map((scenario) => (
+                    <button
+                      key={scenario}
+                      onClick={() => handleScenarioChange(scenario)}
+                      className={`py-1.5 px-2 text-[10px] font-medium rounded-lg transition-all ${
+                        selectedScenario === scenario
+                          ? scenario === 'low' ? 'bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/50'
+                          : scenario === 'medium' ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50'
+                          : scenario === 'high' ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
+                          : 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/50'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}
+                    >
+                      {scenario === 'custom' ? 'Custom' : scenario.charAt(0).toUpperCase() + scenario.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                {selectedScenario !== 'custom' && (
+                  <p className="text-[10px] text-slate-500 mt-2 italic">
+                    {SCENARIO_PRESETS[selectedScenario].description}
+                  </p>
+                )}
+              </div>
+
               {/* Year Slider */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Timeline</span>
                   <span>{currentYear}</span>
                 </label>
-                <input 
-                  type="range" 
-                  min={START_YEAR} 
-                  max={END_YEAR} 
+                <input
+                  type="range"
+                  min={START_YEAR}
+                  max={END_YEAR}
                   value={currentYear}
                   onChange={(e) => {
                     setIsPlaying(false);
@@ -128,55 +180,97 @@ const App: React.FC = () => {
                 />
               </div>
 
-              {/* Retirement Age */}
+              {/* Retirement Age - Always editable */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Retirement Age</span>
                   <span className="text-amber-400 font-mono font-bold">{params.retirementAge}y</span>
                 </label>
-                <input 
-                  type="range" 
-                  min={60} 
-                  max={75} 
+                <input
+                  type="range"
+                  min={60}
+                  max={75}
                   value={params.retirementAge}
                   onChange={(e) => setParams({...params, retirementAge: Number(e.target.value)})}
                   className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
                 />
               </div>
 
-              {/* Fertility Rate */}
+              {/* Fertility Rate - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Fertility Rate (TFR)</span>
                   <span className="text-pink-400 font-mono font-bold">{params.fertilityRate.toFixed(2)}</span>
                 </label>
-                <input 
-                  type="range" 
-                  min={0.8} 
-                  max={2.5} 
+                <input
+                  type="range"
+                  min={0.8}
+                  max={2.5}
                   step={0.01}
                   value={params.fertilityRate}
-                  onChange={(e) => setParams({...params, fertilityRate: Number(e.target.value)})}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                  disabled={selectedScenario !== 'custom'}
+                  onChange={(e) => handleParamChange('fertilityRate', Number(e.target.value))}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-pink-500 ${
+                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                  }`}
                 />
-                <p className="text-[10px] text-slate-500 mt-1 italic">Average children per woman (Replacement is 2.1)</p>
+                <p className="text-[10px] text-slate-500 mt-1 italic">
+                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
+                  Replacement is 2.1
+                </p>
               </div>
 
-              {/* Net Migration */}
+              {/* Net Migration - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Annual Net Migration</span>
-                  <span className="text-cyan-400 font-mono font-bold">+{params.netMigration.toLocaleString()}</span>
+                  <span className="text-cyan-400 font-mono font-bold">{params.netMigration >= 0 ? '+' : ''}{params.netMigration.toLocaleString()}</span>
                 </label>
-                <input 
-                  type="range" 
-                  min={-10000} 
-                  max={150000} 
+                <input
+                  type="range"
+                  min={-10000}
+                  max={150000}
                   step={1000}
                   value={params.netMigration}
-                  onChange={(e) => setParams({...params, netMigration: Number(e.target.value)})}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  disabled={selectedScenario !== 'custom'}
+                  onChange={(e) => handleParamChange('netMigration', Number(e.target.value))}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyan-500 ${
+                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                  }`}
                 />
+                {selectedScenario !== 'custom' && (
+                  <p className="text-[10px] text-amber-500/70 mt-1 italic">Scenario locked</p>
+                )}
+              </div>
+
+              {/* Mortality Improvement - Locked by scenario */}
+              <div>
+                <label className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Mortality Improvement</span>
+                  <span className="text-violet-400 font-mono font-bold">
+                    {(params.mortalityImprovement.male * 100).toFixed(1)}%
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={2.0}
+                  step={0.1}
+                  value={params.mortalityImprovement.male * 100}
+                  disabled={selectedScenario !== 'custom'}
+                  onChange={(e) => {
+                    const maleRate = Number(e.target.value) / 100;
+                    const femaleRate = maleRate * 0.8;
+                    handleParamChange('mortalityImprovement', { male: maleRate, female: femaleRate });
+                  }}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-violet-500 ${
+                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                  }`}
+                />
+                <p className="text-[10px] text-slate-500 mt-1 italic">
+                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
+                  Annual mortality rate reduction
+                </p>
               </div>
             </div>
 
@@ -298,7 +392,7 @@ const App: React.FC = () => {
       <footer className="mt-8 text-center text-slate-600 text-[10px] flex items-center justify-center gap-4">
         <span>Data based on INE 2024 Estimates</span>
         <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
-        <span>Demographic Projection Model v1.2</span>
+        <span>Demographic Projection Model v2.0 (Scenarios)</span>
       </footer>
     </div>
   );
