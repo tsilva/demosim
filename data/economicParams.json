@@ -1,0 +1,90 @@
+{
+  "source": "Compiled from INE, PORDATA, Segurança Social, OECD 2024",
+  "reference": {
+    "socialSecurity": "PwC Tax Guide Portugal 2024",
+    "employment": "PORDATA - Taxa de Emprego",
+    "healthcare": "OECD Health Statistics 2024",
+    "pensions": "Segurança Social - Estatísticas"
+  },
+  "socialSecurity": {
+    "contributionRates": {
+      "employee": 0.11,
+      "employer": 0.2375,
+      "total": 0.3475,
+      "selfEmployed": 0.214,
+      "description": "Percentage of gross salary contributed to Social Security"
+    },
+    "pensionCalculation": {
+      "accrualRateMin": 0.02,
+      "accrualRateMax": 0.023,
+      "maxContributionYears": 40,
+      "replacementRate": 0.69,
+      "description": "Pension accrues at 2-2.3% per year, capped at 40 years"
+    },
+    "retirementAge2024": {
+      "years": 66,
+      "months": 4,
+      "decimal": 66.33,
+      "note": "Increases based on life expectancy at age 65"
+    },
+    "retirementAge2025": {
+      "years": 66,
+      "months": 5,
+      "decimal": 66.42
+    },
+    "socialSupportIndex2024": 509.26,
+    "minimumPension2024": 308.30,
+    "averagePension2024": 580.00
+  },
+  "employment": {
+    "description": "Employment rates by age group (proportion of population employed)",
+    "rates": [
+      {"ageGroup": "15-19", "rate": 0.08},
+      {"ageGroup": "20-24", "rate": 0.45},
+      {"ageGroup": "25-29", "rate": 0.78},
+      {"ageGroup": "30-34", "rate": 0.84},
+      {"ageGroup": "35-39", "rate": 0.86},
+      {"ageGroup": "40-44", "rate": 0.87},
+      {"ageGroup": "45-49", "rate": 0.86},
+      {"ageGroup": "50-54", "rate": 0.82},
+      {"ageGroup": "55-59", "rate": 0.72},
+      {"ageGroup": "60-64", "rate": 0.48},
+      {"ageGroup": "65-69", "rate": 0.15},
+      {"ageGroup": "70+", "rate": 0.04}
+    ],
+    "overall2064Rate": 0.75,
+    "youthUnemploymentRate": 0.20
+  },
+  "wages": {
+    "averageGrossSalary2024": 1505,
+    "medianGrossSalary2024": 1100,
+    "minimumWage2024": 820,
+    "minimumWage2025": 870,
+    "currency": "EUR",
+    "period": "monthly",
+    "annualMultiplier": 14,
+    "note": "Portugal pays 14 months (12 + holiday + Christmas subsidies)"
+  },
+  "healthcare": {
+    "perCapitaSpending2024": 2744,
+    "currency": "USD",
+    "gdpShare": 0.106,
+    "publicShare": 0.66,
+    "privateShare": 0.34,
+    "ageMultipliers": {
+      "description": "Healthcare cost multiplier relative to 20-64 baseline",
+      "0-19": 0.6,
+      "20-64": 1.0,
+      "65-74": 2.5,
+      "75-84": 4.0,
+      "85+": 6.0
+    },
+    "note": "Age 65+ spends approximately 4x more than working-age population"
+  },
+  "productivity": {
+    "gdpPerWorker2024": 42500,
+    "gdpPerCapita2024": 27200,
+    "currency": "EUR",
+    "annualGrowthRate": 0.015
+  }
+}
