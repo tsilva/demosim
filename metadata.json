@@ -1,0 +1,5 @@
+{
+  "name": "Portugal Demographics Simulator",
+  "description": "An interactive tool to simulate and visualize the evolution of Portugal's demographic structure, dependency ratios, and economic impact over the 21st century.",
+  "requestFramePermissions": []
+}
