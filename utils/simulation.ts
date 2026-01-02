@@ -96,18 +96,40 @@ const parseAgeGroup = (ageGroup: string): [number, number] => {
 };
 
 /**
- * Get employment rate for a given age
- * Returns the proportion of people at this age who are employed
- * Source: PORDATA employment rates by age group
+ * Get employment rate for a given age, adjusted for workforce entry shift and unemployment
+ *
+ * @param age - The actual age of the person
+ * @param workforceEntryAgeShift - Years to shift workforce entry (positive = later entry due to more education)
+ *   Example: shift=+2 means a 25-year-old has the employment pattern of a current 23-year-old
+ *   This models scenarios where people stay in education longer before entering workforce
+ * @param unemploymentAdjustment - Factor to adjust employment (positive = higher unemployment)
+ *   Example: adjustment=0.05 means 5% fewer people employed (economic downturn)
+ *   Applied as: adjusted_rate = base_rate * (1 - unemploymentAdjustment)
+ *
+ * Source: PORDATA employment rates by age group (2024 baseline)
  */
-const getEmploymentRate = (age: number): number => {
+const getEmploymentRate = (
+  age: number,
+  workforceEntryAgeShift: number = 0,
+  unemploymentAdjustment: number = 0
+): number => {
+  // Apply workforce entry age shift: look up rate for (age - shift)
+  // Positive shift = later entry, so a 25yo with shift=+2 uses rate for age 23
+  const effectiveAge = Math.max(15, age - workforceEntryAgeShift);
+
+  let baseRate = 0;
   for (const entry of economicParams.employment.rates) {
     const [minAge, maxAge] = parseAgeGroup(entry.ageGroup);
-    if (age >= minAge && age <= maxAge) {
-      return entry.rate;
+    if (effectiveAge >= minAge && effectiveAge <= maxAge) {
+      baseRate = entry.rate;
+      break;
     }
   }
-  return 0;
+
+  // Apply unemployment adjustment: higher unemployment = lower employment rate
+  // Clamp the result between 0 and the base rate (can't have negative employment)
+  const adjustedRate = baseRate * (1 - unemploymentAdjustment);
+  return Math.max(0, Math.min(1, adjustedRate));
 };
 
 /**
@@ -157,7 +179,9 @@ const getHealthcareMultiplier = (age: number): number => {
 const calculateEconomicMetrics = (
   population: AgeGroup[],
   retirementAge: number,
-  yearsFromBase: number
+  yearsFromBase: number,
+  workforceEntryAgeShift: number,
+  unemploymentAdjustment: number
 ): EconomicMetrics => {
   // Constants from economicParams.json
   const ssRate = economicParams.socialSecurity.contributionRates.total; // 0.3475
@@ -174,17 +198,18 @@ const calculateEconomicMetrics = (
   const healthcareInflationFactor = Math.pow(1 + healthcareInflation, yearsFromBase);
 
   // Calculate actual workforce and working-age population
+  // Apply workforce entry age shift and unemployment adjustment
   let actualWorkforce = 0;
   let workingAgePop = 0;
 
   for (const group of population) {
     if (group.age >= 15 && group.age < retirementAge) {
       workingAgePop += group.total;
-      actualWorkforce += group.total * getEmploymentRate(group.age);
+      actualWorkforce += group.total * getEmploymentRate(group.age, workforceEntryAgeShift, unemploymentAdjustment);
     }
     // Include post-retirement workers (65-69 have 15%, 70+ have 4%)
     if (group.age >= retirementAge) {
-      actualWorkforce += group.total * getEmploymentRate(group.age);
+      actualWorkforce += group.total * getEmploymentRate(group.age, workforceEntryAgeShift, unemploymentAdjustment);
     }
   }
 
@@ -279,8 +304,14 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
-    // Calculate economic metrics
-    const economic = calculateEconomicMetrics(currentPop, params.retirementAge, yearsFromBase);
+    // Calculate economic metrics with workforce entry and unemployment adjustments
+    const economic = calculateEconomicMetrics(
+      currentPop,
+      params.retirementAge,
+      yearsFromBase,
+      params.workforceEntryAgeShift,
+      params.unemploymentAdjustment
+    );
 
     results.push({
       year,

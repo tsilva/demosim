@@ -51,6 +51,9 @@ export interface SimulationParams {
   fertilityRate: number; // Children per woman
   netMigration: number; // Net annual migration
   mortalityImprovement: MortalityImprovementRate; // Configurable mortality improvement rates
+  // Economic parameters
+  workforceEntryAgeShift: number; // Years to shift workforce entry (0=current, +2=2 years later due to more education)
+  unemploymentAdjustment: number; // Adjustment factor (0=baseline, +0.05=5% higher unemployment, -0.03=3% lower)
 }
 
 // Scenario definition for presets
@@ -64,11 +67,13 @@ export interface ScenarioDefinition {
 export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioDefinition> = {
   low: {
     name: 'Low',
-    description: 'Pessimistic: Lower fertility, reduced migration, slower mortality improvement',
+    description: 'Pessimistic: Lower fertility, reduced migration, higher unemployment',
     params: {
       fertilityRate: 1.20,
       netMigration: 50000,
-      mortalityImprovement: { male: 0.005, female: 0.004 }
+      mortalityImprovement: { male: 0.005, female: 0.004 },
+      workforceEntryAgeShift: 1,    // People enter workforce 1 year later (more education/fewer jobs)
+      unemploymentAdjustment: 0.03  // 3% higher unemployment (economic stagnation)
     }
   },
   medium: {
@@ -77,16 +82,20 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     params: {
       fertilityRate: 1.40,
       netMigration: 110000,
-      mortalityImprovement: { male: 0.010, female: 0.008 }
+      mortalityImprovement: { male: 0.010, female: 0.008 },
+      workforceEntryAgeShift: 0,    // Current workforce entry patterns
+      unemploymentAdjustment: 0     // Current unemployment levels
     }
   },
   high: {
     name: 'High',
-    description: 'Optimistic: Higher fertility, strong migration, faster mortality improvement',
+    description: 'Optimistic: Higher fertility, strong migration, lower unemployment',
     params: {
       fertilityRate: 1.77,
       netMigration: 150000,
-      mortalityImprovement: { male: 0.015, female: 0.012 }
+      mortalityImprovement: { male: 0.015, female: 0.012 },
+      workforceEntryAgeShift: -1,   // Earlier workforce entry (better vocational training)
+      unemploymentAdjustment: -0.02 // 2% lower unemployment (economic growth)
     }
   }
 };

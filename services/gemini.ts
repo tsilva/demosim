@@ -36,6 +36,8 @@ export const getDemographicAnalysis = async (
       - Retirement Age: ${params.retirementAge}
       - Fertility Rate: ${params.fertilityRate}
       - Net Migration: ${params.netMigration} / year
+      - Workforce Entry Shift: ${params.workforceEntryAgeShift >= 0 ? '+' : ''}${params.workforceEntryAgeShift} years (${params.workforceEntryAgeShift > 0 ? 'later entry due to more education' : params.workforceEntryAgeShift < 0 ? 'earlier entry' : 'baseline'})
+      - Unemployment Adjustment: ${params.unemploymentAdjustment >= 0 ? '+' : ''}${(params.unemploymentAdjustment * 100).toFixed(0)}% (${params.unemploymentAdjustment > 0 ? 'higher unemployment' : params.unemploymentAdjustment < 0 ? 'lower unemployment' : 'baseline'})
 
       Demographic Stats:
       - Total Population: ${(data.totalPopulation / 1000000).toFixed(2)} Million
