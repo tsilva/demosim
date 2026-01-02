@@ -21,6 +21,8 @@ const App: React.FC = () => {
     fertilityRate: 1.40, // INE 2024: TFR decreased to 1.40 children per woman
     netMigration: 110000, // INE 2024: Net migration +109,909 people
     mortalityImprovement: { male: 0.010, female: 0.008 }, // Default medium scenario
+    workforceEntryAgeShift: 0, // No shift from current patterns
+    unemploymentAdjustment: 0, // Baseline unemployment levels
   });
   
   // Cache simulation results so scrubbing is instant
@@ -49,6 +51,8 @@ const App: React.FC = () => {
       fertilityRate: 1.40,
       netMigration: 110000,
       mortalityImprovement: { male: 0.010, female: 0.008 },
+      workforceEntryAgeShift: 0,
+      unemploymentAdjustment: 0,
     });
     setAiAnalysis(null);
   };
@@ -63,6 +67,8 @@ const App: React.FC = () => {
         fertilityRate: preset.params.fertilityRate,
         netMigration: preset.params.netMigration,
         mortalityImprovement: preset.params.mortalityImprovement,
+        workforceEntryAgeShift: preset.params.workforceEntryAgeShift,
+        unemploymentAdjustment: preset.params.unemploymentAdjustment,
       }));
     }
   };
@@ -275,6 +281,58 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-slate-500 mt-1 italic">
                   {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
                   Annual mortality rate reduction
+                </p>
+              </div>
+
+              {/* Workforce Entry Age Shift - Locked by scenario */}
+              <div>
+                <label className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Workforce Entry Shift</span>
+                  <span className="text-orange-400 font-mono font-bold">
+                    {params.workforceEntryAgeShift >= 0 ? '+' : ''}{params.workforceEntryAgeShift}y
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  min={-3}
+                  max={5}
+                  step={1}
+                  value={params.workforceEntryAgeShift}
+                  disabled={selectedScenario !== 'custom'}
+                  onChange={(e) => handleParamChange('workforceEntryAgeShift', Number(e.target.value))}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-orange-500 ${
+                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                  }`}
+                />
+                <p className="text-[10px] text-slate-500 mt-1 italic">
+                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
+                  + = later entry (more education)
+                </p>
+              </div>
+
+              {/* Unemployment Adjustment - Locked by scenario */}
+              <div>
+                <label className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Unemployment Adjust</span>
+                  <span className={`font-mono font-bold ${params.unemploymentAdjustment > 0 ? 'text-rose-400' : params.unemploymentAdjustment < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                    {params.unemploymentAdjustment >= 0 ? '+' : ''}{(params.unemploymentAdjustment * 100).toFixed(0)}%
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  min={-10}
+                  max={15}
+                  step={1}
+                  value={params.unemploymentAdjustment * 100}
+                  disabled={selectedScenario !== 'custom'}
+                  onChange={(e) => handleParamChange('unemploymentAdjustment', Number(e.target.value) / 100)}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-rose-500 ${
+                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                  }`}
+                />
+                <p className="text-[10px] text-slate-500 mt-1 italic">
+                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
+                  + = higher unemployment
                 </p>
               </div>
             </div>

@@ -56,6 +56,8 @@ Transform the simulator into a policy-grade projection system that accurately sh
 3. ✅ Add healthcare cost curve by age - 0.6x to 6.0x multipliers by age group
 4. ✅ Calculate per-worker burden metric - SS deficit + healthcare per worker
 5. ✅ Add system sustainability projections - Sustainability Index 0-100
+6. ✅ Workforce entry age shift parameter - Models later/earlier workforce entry due to education
+7. ✅ Unemployment adjustment parameter - Models economic conditions affecting employment
 
 ### Phase 4: Enhanced Visualizations ✅ COMPLETE
 1. ✅ Per-Worker Burden Chart (€/year per worker) - EconomicTrendChart with burden view
@@ -107,3 +109,5 @@ Transform the simulator into a policy-grade projection system that accurately sh
 | Actual workforce | Not calculated | Age-specific employment rates | ✅ Done |
 | Healthcare costs | Not calculated | Age-adjusted (0.6x-6.0x) | ✅ Done |
 | Sustainability index | Not calculated | 0-100 scale with thresholds | ✅ Done |
+| Workforce entry age | Not modeled | Configurable shift (-3 to +5 years) | ✅ Done |
+| Unemployment impact | Not modeled | Configurable adjustment (-10% to +15%) | ✅ Done |
