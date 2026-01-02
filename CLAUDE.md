@@ -1,77 +1,89 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working with this repository.
 
-## Development Commands
+## Commands
 
 ```bash
 npm install          # Install dependencies
-npm run dev          # Start dev server (port 3000, host 0.0.0.0)
+npm run dev          # Dev server (port 3000)
 npm run build        # Production build
-npm run preview      # Preview production build
+npm run preview      # Preview build
 ```
 
-Requires `GEMINI_API_KEY` environment variable in `.env.local` for AI analysis features.
+Requires `GEMINI_API_KEY` in `.env.local` for AI analysis.
 
 ## Architecture
 
-React 19 + TypeScript + Vite single-page application that simulates Portugal's demographic evolution from 2024 to 2100.
+React 19 + TypeScript + Vite SPA simulating Portugal's demographic evolution 2024-2100.
 
 ### Data Layer (`data/`)
 
-Real demographic data calibrated to INE (Instituto Nacional de Estatística) 2024 figures:
+INE 2024 calibrated data:
 
-- `population2024.json` - Population by single year of age and sex (10,749,635 total)
-- `lifeTables.json` - Mortality rates (qx) calibrated to life expectancy 78.73 (M), 83.96 (F)
-- `fertilityRates.json` - Age-specific fertility rates (ASFR) for TFR 1.40, mean age 31.6
-- `migrationProfile.json` - Age-sex migration distribution patterns
-- `economicParams.json` - Social Security rates, employment, healthcare costs (for Phase 3)
+| File | Description |
+|------|-------------|
+| `population2024.ts` | Population by single year of age/sex (10,749,635 total) |
+| `lifeTables.ts` | Mortality rates (qx), life expectancy 78.73 M / 83.96 F |
+| `fertilityRates.json` | ASFR calibrated to TFR 1.40 (sum verified), mean age 31.6 |
+| `migrationProfile.json` | Age-sex migration weights (normalized in code) |
+| `economicParams.json` | SS rates, employment by age, healthcare multipliers |
 
 ### Simulation Engine (`utils/simulation.ts`)
 
-Implements **cohort-component method** (standard used by UN, Eurostat, national statistics offices):
+**Cohort-component method** (UN/Eurostat standard):
 
-1. Loads real INE 2024 population pyramid data
-2. Applies age-specific mortality rates with improvement factor over time
-3. Calculates births using ASFR distribution (not uniform TFR)
-4. Distributes migration using age-sex profiles
-5. Computes dependency ratio: `(retired / working age) * 100`
+1. Load 2024 population pyramid
+2. Apply mortality with configurable improvement rates
+3. Calculate births using scaled ASFR distribution
+4. Distribute migration with normalized weights + carry-over
+5. Track age 100+ as aggregate (no longer dropped)
+6. Validate population balance each year
 
 Key functions:
-- `generateInitialData()` - Returns real 2024 population from JSON
-- `getMortalityRate(age, sex, yearsFromBase)` - Returns qx with mortality improvement
-- `getFertilityRate(age)` - Returns ASFR for given age
-- `getMigrationWeight(age, sex)` - Returns migration proportion for age group
-- `runSimulation(startYear, endYear, params)` - Main projection loop
+- `generateInitialData()` - Returns 2024 population
+- `getMortalityRate(age, sex, yearsFromBase, improvement)` - qx with improvement
+- `getFertilityRate(age)` - ASFR for age (divide by 1000)
+- `getMigrationWeight(age, sex)` - Normalized weight per age
+- `calculateEconomicMetrics(...)` - SS balance, healthcare, sustainability
+- `runSimulation(startYear, endYear, params)` - Main loop
 
-### Visualization (`components/`)
+### Economic Metrics (`calculateEconomicMetrics`)
 
-- `PyramidChart.tsx` - Population pyramid colored by retirement status
-- `TrendChart.tsx` - Old-age dependency ratio over time
-- Uses Recharts library
+- **SS Contributions**: `workforce × salary × 34.75%`
+- **Pension Payments**: `actualPensioners × avgPension` (excludes working retirees)
+- **Healthcare**: Per-capita cost × age multipliers (0.6x youth → 6x elderly)
+- **Sustainability Index**: `100 × (1 - deficit/contributions)`, 0-100 scale
 
-### AI Integration (`services/gemini.ts`)
+### Components
 
-Google Gemini Flash for demographic policy analysis.
+| Component | Purpose |
+|-----------|---------|
+| `PyramidChart.tsx` | Population pyramid (Recharts) |
+| `TrendChart.tsx` | Dependency ratio over time |
+| `EconomicMetrics.tsx` | SS balance, healthcare, sustainability display |
 
-### Main Application (`App.tsx`)
+### Types (`types.ts`)
 
-- State management and UI (~300 lines)
-- Default params: retirement 66, TFR 1.40, net migration 110,000
-- useMemo caches simulation, useEffect handles animation
+- `SimulationParams` - Retirement age, TFR, migration, mortality improvement, workforce shifts
+- `EconomicMetrics` - Workforce, SS balance, healthcare, sustainability index
+- `SCENARIO_PRESETS` - Low/Medium/High demographic scenarios
 
-## Key Reference Values (INE 2024)
+## Reference Values (INE 2024)
 
-- **Population**: 10,749,635 (5,140,276 M / 5,609,359 F)
-- **Median age**: 47.3 years
-- **Aging ratio**: 192.4 (elderly per 100 young)
-- **Life expectancy**: 81.49 years (78.73 M / 83.96 F)
-- **TFR**: 1.40 children per woman
-- **Net migration 2024**: +109,909
+| Metric | Value |
+|--------|-------|
+| Population | 10,749,635 |
+| Median age | 47.3 |
+| Life expectancy | 81.49 (M: 78.73, F: 83.96) |
+| TFR | 1.40 |
+| Net migration | +109,909 |
 
-## Improvement Plan
+## Important Implementation Notes
 
-See `IMPROVEMENT_PLAN.md` for roadmap to add:
-- Phase 2: Mortality improvement scenarios, fertility scenarios
-- Phase 3: Economic burden calculations (€ per worker)
-- Phase 4: Enhanced visualizations (Social Security balance, healthcare costs)
+1. **ASFR scaling**: User TFR is applied as ratio to base 1.40 (`scaledASFR = baseASFR × (userTFR / 1.40)`)
+2. **Migration normalization**: Weights don't sum to 1.0 in JSON; normalized dynamically in code
+3. **Age 100+ handling**: Aggregated at age 100 with high mortality, not dropped
+4. **Pension calculation**: Excludes working retirees (15% of 65-69, 4% of 70+)
+5. **Healthcare currency**: USD values from OECD converted to EUR (×0.93)
+6. **Population validation**: Console warning if balance error >100 per year
