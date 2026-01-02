@@ -7,6 +7,9 @@ import PyramidChart from './components/PyramidChart';
 import TrendChart from './components/TrendChart';
 import EconomicMetrics from './components/EconomicMetrics';
 import EconomicTrendChart, { EconomicChartType } from './components/EconomicTrendChart';
+import InfoTooltip from './components/InfoTooltip';
+import WelcomeModal, { useWelcomeModal } from './components/WelcomeModal';
+import AboutPanel from './components/AboutPanel';
 
 const START_YEAR = 2024;
 const END_YEAR = 2100;
@@ -38,6 +41,9 @@ const App: React.FC = () => {
 
   // Economic chart type state
   const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
+
+  // Welcome modal state
+  const { showWelcome, closeWelcome } = useWelcomeModal();
 
   // --- Handlers ---
   const togglePlay = () => setIsPlaying(!isPlaying);
@@ -106,6 +112,9 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8 flex flex-col">
+      {/* Welcome Modal for first-time visitors */}
+      {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+
       {/* Header */}
       <header className="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-4">
         <div>
@@ -210,7 +219,10 @@ const App: React.FC = () => {
               {/* Fertility Rate - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Fertility Rate (TFR)</span>
+                  <span className="flex items-center">
+                    Fertility Rate (TFR)
+                    <InfoTooltip content="Average children per woman. 2.1 is replacement level needed to maintain population without migration." />
+                  </span>
                   <span className="text-pink-400 font-mono font-bold">{params.fertilityRate.toFixed(2)}</span>
                 </label>
                 <input
@@ -234,7 +246,10 @@ const App: React.FC = () => {
               {/* Net Migration - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Annual Net Migration</span>
+                  <span className="flex items-center">
+                    Annual Net Migration
+                    <InfoTooltip content="Annual immigrants minus emigrants. Positive values add to population, typically younger working-age adults." />
+                  </span>
                   <span className="text-cyan-400 font-mono font-bold">{params.netMigration >= 0 ? '+' : ''}{params.netMigration.toLocaleString()}</span>
                 </label>
                 <input
@@ -257,7 +272,10 @@ const App: React.FC = () => {
               {/* Mortality Improvement - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Mortality Improvement</span>
+                  <span className="flex items-center">
+                    Mortality Improvement
+                    <InfoTooltip content="Annual % reduction in death rates. Higher values mean people live longer, increasing elderly population." />
+                  </span>
                   <span className="text-violet-400 font-mono font-bold">
                     {(params.mortalityImprovement.male * 100).toFixed(1)}%
                   </span>
@@ -287,7 +305,10 @@ const App: React.FC = () => {
               {/* Workforce Entry Age Shift - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Workforce Entry Shift</span>
+                  <span className="flex items-center">
+                    Workforce Entry Shift
+                    <InfoTooltip content="Age shift for entering the workforce. Positive values = later entry (more education), reducing working years." />
+                  </span>
                   <span className="text-orange-400 font-mono font-bold">
                     {params.workforceEntryAgeShift >= 0 ? '+' : ''}{params.workforceEntryAgeShift}y
                   </span>
@@ -313,7 +334,10 @@ const App: React.FC = () => {
               {/* Unemployment Adjustment - Locked by scenario */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Unemployment Adjust</span>
+                  <span className="flex items-center">
+                    Unemployment Adjust
+                    <InfoTooltip content="Change from baseline unemployment rate. Positive = higher unemployment, fewer workers contributing to social security." />
+                  </span>
                   <span className={`font-mono font-bold ${params.unemploymentAdjustment > 0 ? 'text-rose-400' : params.unemploymentAdjustment < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
                     {params.unemploymentAdjustment >= 0 ? '+' : ''}{(params.unemploymentAdjustment * 100).toFixed(0)}%
                   </span>
@@ -408,7 +432,10 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 gap-3">
              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-tight">Dependency Ratio</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
+                    Dependency Ratio
+                    <InfoTooltip content="Retirees per 100 working-age adults. Above 55% means serious strain on the social security system." />
+                  </p>
                   <p className={`text-xl font-bold ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
                     {currentData.oldAgeDependencyRatio.toFixed(1)}%
                   </p>
@@ -454,10 +481,13 @@ const App: React.FC = () => {
 
       </main>
 
-      <footer className="mt-8 text-center text-slate-600 text-[10px] flex items-center justify-center gap-4">
-        <span>Data based on INE 2024 Estimates</span>
-        <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
-        <span>Demographic Projection Model v2.0 (Scenarios)</span>
+      <footer className="mt-8">
+        <AboutPanel />
+        <div className="mt-4 text-center text-slate-600 text-[10px] flex items-center justify-center gap-4">
+          <span>Data based on INE 2024 Estimates</span>
+          <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+          <span>Demographic Projection Model v2.0</span>
+        </div>
       </footer>
     </div>
   );

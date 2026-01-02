@@ -67,7 +67,7 @@ export interface ScenarioDefinition {
 export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioDefinition> = {
   low: {
     name: 'Low',
-    description: 'Pessimistic: Lower fertility, reduced migration, higher unemployment',
+    description: 'Economic stagnation: TFR 1.20, migration 50K/year, +3% unemployment',
     params: {
       fertilityRate: 1.20,
       netMigration: 50000,
@@ -78,7 +78,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   medium: {
     name: 'Medium',
-    description: 'Baseline: Current trends continue (INE 2024)',
+    description: 'Current trends continue: TFR 1.40, migration 110K/year (INE 2024 baseline)',
     params: {
       fertilityRate: 1.40,
       netMigration: 110000,
@@ -89,7 +89,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   high: {
     name: 'High',
-    description: 'Optimistic: Higher fertility, strong migration, lower unemployment',
+    description: 'Optimistic growth: TFR 1.77, migration 150K/year, -2% unemployment',
     params: {
       fertilityRate: 1.77,
       netMigration: 150000,
