@@ -7,40 +7,27 @@ Transform the simulator into a policy-grade projection system that accurately sh
 
 ## Current Implementation Gaps
 
-### 1. Population Data (`simulation.ts:10-62`)
-**Current**: Parametric model using invented piecewise functions
-**Problem**: Misses actual age pyramid shape, historical cohort effects
-**Solution**: Use real 2024 INE population by single year of age and sex (10,749,635 total)
+### 1. ✅ Population Data - SOLVED
+**Was**: Parametric model using invented piecewise functions
+**Now**: Real INE 2024 population by single year of age and sex (10,749,635 total)
+**Files**: `data/population2024.ts`
 
-### 2. Mortality Model (`simulation.ts:68-79`)
-**Current**: Simplified Gompertz with arbitrary constants (0.096 male, 0.086 female)
-**Problems**:
-- Not calibrated to Portugal data
-- No infant mortality modeling
-- No mortality improvement over time
-- Doesn't match actual life expectancy: 78.73y (M), 83.96y (F)
+### 2. ✅ Mortality Model - SOLVED
+**Was**: Simplified Gompertz with arbitrary constants
+**Now**: INE life tables with qx values by age, configurable mortality improvement factor (0-2%)
+**Files**: `data/lifeTables.ts`, `utils/simulation.ts`
 
-**Solution**: Use INE life tables with qx values by age, add mortality improvement factor
+### 3. ✅ Fertility Model - SOLVED
+**Was**: Uniform TFR distribution across ages 15-49
+**Now**: Age-specific fertility rates (ASFR) from INE, peaking at ages 30-34
+**Files**: `data/fertilityRates.ts`, `utils/simulation.ts`
 
-### 3. Fertility Model (`simulation.ts:119-125`)
-**Current**: Uniform TFR distribution across ages 15-49
-**Problems**:
-- Real fertility concentrated in ages 25-40
-- Mean age at childbirth is 31.6 years
-- Current TFR is 1.40 (2024)
+### 4. ✅ Migration Model - SOLVED
+**Was**: Flat distribution across ages 18-45
+**Now**: Age-sex specific migration profiles from INE, peak at ages 25-34
+**Files**: `data/migrationProfile.ts`, `utils/simulation.ts`
 
-**Solution**: Implement age-specific fertility rates (ASFR) from INE
-
-### 4. Migration Model (`simulation.ts:144-156`)
-**Current**: Flat distribution across ages 18-45
-**Problems**:
-- Real migration concentrated in ages 20-35
-- Immigration/emigration have different profiles
-- Portugal has volatile migration patterns
-
-**Solution**: Age-sex specific migration profiles from INE
-
-### 5. Economic Burden (Critical Gap)
+### 5. Economic Burden (Critical Gap) - PENDING
 **Current**: Only old-age dependency ratio
 **Missing**:
 - Employment rates (not everyone 15-65 works)
@@ -111,10 +98,12 @@ Transform the simulator into a policy-grade projection system that accurately sh
 
 ## Expected Accuracy Improvements
 
-| Metric | Current | After |
-|--------|---------|-------|
-| 2024 Population | ~10.4M (estimated) | 10,749,635 (exact) |
-| Life expectancy | Undefined | 81.49 years (calibrated) |
-| Fertility distribution | Uniform 15-49 | ASFR curve peaking 30-34 |
-| Migration profile | Flat 18-45 | Realistic 20-35 peak |
-| Economic burden | Dependency ratio | €/worker/year with SS balance |
+| Metric | Before | After | Status |
+|--------|--------|-------|--------|
+| 2024 Population | ~10.4M (estimated) | 10,749,635 (exact) | ✅ Done |
+| Life expectancy | Undefined | 81.49 years (calibrated) | ✅ Done |
+| Fertility distribution | Uniform 15-49 | ASFR curve peaking 30-34 | ✅ Done |
+| Migration profile | Flat 18-45 | Realistic 20-35 peak | ✅ Done |
+| Mortality improvement | Hardcoded 1% | Configurable 0-2% via scenarios | ✅ Done |
+| Projection scenarios | None | Low/Medium/High/Custom presets | ✅ Done |
+| Economic burden | Dependency ratio | €/worker/year with SS balance | Phase 3 |
