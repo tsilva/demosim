@@ -5,6 +5,26 @@ export interface AgeGroup {
   total: number;
 }
 
+export interface EconomicMetrics {
+  // Employment
+  actualWorkforce: number;           // People actually employed
+  employmentRate: number;            // Workforce / working-age pop
+
+  // Social Security
+  totalSSContributions: number;      // EUR/year from workers
+  totalPensionPayments: number;      // EUR/year to retirees
+  ssBalance: number;                 // Contributions - Payments
+  ssBalancePerWorker: number;        // EUR/year per worker
+
+  // Healthcare
+  totalHealthcareCost: number;       // EUR/year for population
+  healthcareCostPerWorker: number;   // EUR/year per worker
+
+  // Combined
+  totalBurdenPerWorker: number;      // SS deficit + healthcare per worker
+  sustainabilityIndex: number;       // 0-100 (100 = sustainable)
+}
+
 export interface YearData {
   year: number;
   population: AgeGroup[];
@@ -14,6 +34,7 @@ export interface YearData {
   childPop: number;
   oldAgeDependencyRatio: number; // (Retired / Working) * 100
   medianAge: number;
+  economic: EconomicMetrics;
 }
 
 // Scenario type for preset configurations

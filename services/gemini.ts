@@ -22,6 +22,12 @@ export const getDemographicAnalysis = async (
   }
 
   try {
+    const formatCurrency = (value: number): string => {
+      if (Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(1)}B EUR`;
+      if (Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(1)}M EUR`;
+      return `${value.toLocaleString()} EUR`;
+    };
+
     const prompt = `
       Act as a senior demographic and economic policy expert for Portugal.
       Analyze the following simulated demographic scenario for Portugal in the year ${data.year}.
@@ -31,16 +37,26 @@ export const getDemographicAnalysis = async (
       - Fertility Rate: ${params.fertilityRate}
       - Net Migration: ${params.netMigration} / year
 
-      Current Stats:
+      Demographic Stats:
       - Total Population: ${(data.totalPopulation / 1000000).toFixed(2)} Million
       - Old-Age Dependency Ratio: ${data.oldAgeDependencyRatio.toFixed(1)}% (Retirees per 100 workers)
       - Median Age: ${data.medianAge}
       - Retired Population: ${(data.retiredPop / 1000000).toFixed(2)} Million
-      - Working Population: ${(data.workingAgePop / 1000000).toFixed(2)} Million
+      - Working-Age Population: ${(data.workingAgePop / 1000000).toFixed(2)} Million
+
+      Economic Indicators:
+      - Actual Workforce: ${(data.economic.actualWorkforce / 1000000).toFixed(2)} Million (${(data.economic.employmentRate * 100).toFixed(1)}% employment rate)
+      - Social Security Contributions: ${formatCurrency(data.economic.totalSSContributions)}
+      - Pension Payments: ${formatCurrency(data.economic.totalPensionPayments)}
+      - SS Balance: ${data.economic.ssBalance >= 0 ? '+' : ''}${formatCurrency(data.economic.ssBalance)} (${data.economic.ssBalance >= 0 ? 'surplus' : 'deficit'})
+      - Total Healthcare Cost: ${formatCurrency(data.economic.totalHealthcareCost)}
+      - Economic Burden per Worker: ${formatCurrency(data.economic.totalBurdenPerWorker)}/year
+      - Sustainability Index: ${data.economic.sustainabilityIndex.toFixed(0)}/100 (${data.economic.sustainabilityIndex < 30 ? 'CRITICAL' : data.economic.sustainabilityIndex < 60 ? 'WARNING' : 'Sustainable'})
 
       Provide a concise, 3-sentence high-level summary of the societal and economic mood.
-      Then, provide 3 bullet points on the specific pressure points for the Portuguese economy (Social Security sustainability, Healthcare burden, Labor shortage, etc.).
-      Be realistic about the consequences of such a high dependency ratio if it is high (>50%).
+      Then, provide 3 bullet points on the specific pressure points for the Portuguese economy, using the actual numbers provided.
+      Be realistic about the consequences. If SS balance is negative, emphasize the unsustainability.
+      If burden per worker exceeds 15,000 EUR, highlight the strain on the active workforce.
     `;
 
     const response = await client.models.generateContent({
