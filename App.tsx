@@ -287,56 +287,10 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 gap-4">
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-md">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-tight">Dependency Ratio</p>
-                  <p className={`text-2xl font-bold ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
-                    {currentData.oldAgeDependencyRatio.toFixed(1)}%
-                  </p>
-                </div>
-                <div className="h-10 w-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
-                  <TrendingUp size={20} />
-                </div>
-             </div>
-
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-md">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-tight">Total Population</p>
-                  <p className="text-2xl font-bold text-slate-200">
-                    {(currentData.totalPopulation / 1000000).toFixed(2)}M
-                  </p>
-                </div>
-                <div className="h-10 w-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
-                  <Users size={20} />
-                </div>
-             </div>
-
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-md">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-tight">Median Age</p>
-                  <p className="text-2xl font-bold text-slate-200">
-                    {currentData.medianAge}y
-                  </p>
-                </div>
-                <div className="h-10 w-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
-                  <span className="font-bold text-xs uppercase">Age</span>
-                </div>
-             </div>
-          </div>
-
-          {/* Economic Metrics */}
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg">
-            <div className="flex items-center gap-2 mb-3 text-amber-400 font-semibold border-b border-slate-800 pb-2">
-              <TrendingUp size={16} /> Economic Indicators
-            </div>
-            <EconomicMetrics metrics={currentData.economic} />
-          </div>
         </div>
 
-        {/* Center Column: Pyramid (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-4 h-[700px] lg:h-auto">
+        {/* Center Column: Pyramid + Charts + AI (6 cols) */}
+        <div className="lg:col-span-6 flex flex-col gap-4">
           <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg relative overflow-hidden flex flex-col h-[400px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} />
           </div>
@@ -354,60 +308,90 @@ const App: React.FC = () => {
                />
             </div>
           </div>
+
+          {/* AI Analysis */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
+            <div className="flex items-center gap-2 mb-3 text-purple-400 font-semibold border-b border-slate-800 pb-2">
+              <BrainCircuit size={18} /> AI Policy Insight
+            </div>
+
+            <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 text-sm text-slate-300 overflow-y-auto mb-3 h-[150px] scrollbar-thin scrollbar-thumb-slate-800">
+              {isAnalyzing ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
+                  <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                  <p className="text-xs">Consulting simulation model...</p>
+                </div>
+              ) : aiAnalysis ? (
+                 <div className="prose prose-invert prose-sm leading-relaxed">
+                    <p className="whitespace-pre-line text-slate-200">{aiAnalysis}</p>
+                 </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 text-center p-4">
+                  <BrainCircuit size={32} className="opacity-10" />
+                  <p className="text-xs">How does {currentYear} look for the Portuguese state?</p>
+                  <p className="text-[10px] opacity-60">Generate an AI assessment based on the current data visualization.</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleAnalysis}
+              disabled={isAnalyzing}
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
+            >
+              {isAnalyzing ? 'Thinking...' : `Analyze ${currentYear} Consequences`}
+            </button>
+          </div>
         </div>
 
-        {/* Right Column: AI Analysis & Details (3 cols) */}
-        <div className="lg:col-span-3 space-y-6">
-           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg h-full flex flex-col">
-              <div className="flex items-center gap-2 mb-4 text-purple-400 font-semibold border-b border-slate-800 pb-2">
-                <BrainCircuit size={18} /> AI Policy Insight
-              </div>
-              
-              <div className="flex-grow bg-slate-950 rounded-lg p-4 border border-slate-800 text-sm text-slate-300 overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-slate-800">
-                {isAnalyzing ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
-                    <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-                    <p className="text-xs">Consulting simulation model...</p>
-                  </div>
-                ) : aiAnalysis ? (
-                   <div className="prose prose-invert prose-sm leading-relaxed">
-                      <p className="whitespace-pre-line text-slate-200">{aiAnalysis}</p>
-                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 text-center p-4">
-                    <BrainCircuit size={32} className="opacity-10" />
-                    <p className="text-xs">How does {currentYear} look for the Portuguese state?</p>
-                    <p className="text-[10px] opacity-60">Generate an AI assessment based on the current data visualization.</p>
-                  </div>
-                )}
-              </div>
-
-              <button 
-                onClick={handleAnalysis}
-                disabled={isAnalyzing}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                {isAnalyzing ? 'Thinking...' : `Analyze ${currentYear} Consequences`}
-              </button>
-              
-              <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                <h4 className="text-[10px] uppercase text-slate-500 font-bold mb-2">Simulated State: {currentYear}</h4>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-slate-400">Workers:</span>
-                    <span className="text-emerald-400 font-mono">{(currentData.workingAgePop / 1000000).toFixed(2)}M</span>
-                  </div>
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-slate-400">Pensioners:</span>
-                    <span className="text-rose-400 font-mono">{(currentData.retiredPop / 1000000).toFixed(2)}M</span>
-                  </div>
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-slate-400">Youth (0-14):</span>
-                    <span className="text-cyan-400 font-mono">{(currentData.childPop / 1000000).toFixed(2)}M</span>
-                  </div>
+        {/* Right Column: Metrics & Economic Indicators (3 cols) */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 gap-3">
+             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-tight">Dependency Ratio</p>
+                  <p className={`text-xl font-bold ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
+                    {currentData.oldAgeDependencyRatio.toFixed(1)}%
+                  </p>
                 </div>
-              </div>
-           </div>
+                <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+                  <TrendingUp size={16} />
+                </div>
+             </div>
+
+             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-tight">Total Population</p>
+                  <p className="text-xl font-bold text-slate-200">
+                    {(currentData.totalPopulation / 1000000).toFixed(2)}M
+                  </p>
+                </div>
+                <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+                  <Users size={16} />
+                </div>
+             </div>
+
+             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-tight">Median Age</p>
+                  <p className="text-xl font-bold text-slate-200">
+                    {currentData.medianAge}y
+                  </p>
+                </div>
+                <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+                  <span className="font-bold text-[10px] uppercase">Age</span>
+                </div>
+             </div>
+          </div>
+
+          {/* Economic Metrics */}
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg">
+            <div className="flex items-center gap-2 mb-3 text-amber-400 font-semibold border-b border-slate-800 pb-2 text-sm">
+              <TrendingUp size={16} /> Economic Indicators
+            </div>
+            <EconomicMetrics metrics={currentData.economic} />
+          </div>
         </div>
 
       </main>
