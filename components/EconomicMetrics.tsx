@@ -28,7 +28,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
           {(metrics.actualWorkforce / 1000000).toFixed(2)}M
         </p>
         <p className="text-[10px] text-slate-500">
-          {(metrics.employmentRate * 100).toFixed(1)}% employment rate
+          {(metrics.laborUtilizationRate * 100).toFixed(1)}% labor utilization
         </p>
       </div>
 

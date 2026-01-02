@@ -8,7 +8,7 @@ export interface AgeGroup {
 export interface EconomicMetrics {
   // Employment
   actualWorkforce: number;           // People actually employed
-  employmentRate: number;            // Workforce / working-age pop
+  laborUtilizationRate: number;      // Total workers (incl. post-retirement) / working-age pop
 
   // Social Security
   totalSSContributions: number;      // EUR/year from workers

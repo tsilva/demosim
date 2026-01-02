@@ -67,17 +67,24 @@ const getFertilityRate = (age: number): number => {
 /**
  * Get migration weight for a given age group
  * Returns the proportion of total migration allocated to this age
+ * Weights are normalized to sum to 1.0 to ensure all migration is distributed
  */
 const getMigrationWeight = (age: number, sex: 'male' | 'female'): number => {
   const profile = sex === 'male' ? migrationData.ageProfile.male : migrationData.ageProfile.female;
+
+  // Calculate total weight for normalization (weights may not sum to 1.0 in data)
+  let totalWeight = 0;
+  for (const group of profile) {
+    totalWeight += group.weight;
+  }
 
   // Find the age group this age belongs to
   for (const group of profile) {
     const [minAge, maxAge] = parseAgeGroup(group.ageGroup);
     if (age >= minAge && age <= maxAge) {
-      // Distribute weight evenly across ages in the group
+      // Distribute normalized weight evenly across ages in the group
       const groupSize = maxAge - minAge + 1;
-      return group.weight / groupSize;
+      return (group.weight / totalWeight) / groupSize;
     }
   }
   return 0;
@@ -189,7 +196,9 @@ const calculateEconomicMetrics = (
                         economicParams.wages.annualMultiplier; // 1505 * 14 = 21070
   const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
                          economicParams.wages.annualMultiplier; // 580 * 14 = 8120
-  const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024; // 2744
+  // Healthcare cost from OECD is in USD, convert to EUR (1 USD = 0.93 EUR avg 2024)
+  const usdToEur = 0.93;
+  const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur; // ~2552 EUR
   const wageGrowth = economicParams.productivity.annualGrowthRate; // 0.015
   const healthcareInflation = 0.02; // 2% annual healthcare inflation
 
@@ -215,17 +224,26 @@ const calculateEconomicMetrics = (
 
   actualWorkforce = Math.round(actualWorkforce);
 
-  // Calculate retired population
-  const retiredPop = population
-    .filter(g => g.age >= retirementAge)
-    .reduce((sum, g) => sum + g.total, 0);
+  // Calculate retired population and actual pensioners (excluding those still working)
+  let retiredPop = 0;
+  let actualPensioners = 0;
+  for (const group of population) {
+    if (group.age >= retirementAge) {
+      retiredPop += group.total;
+      // Subtract those still working from pension recipients
+      const employmentRate = getEmploymentRate(group.age, workforceEntryAgeShift, unemploymentAdjustment);
+      actualPensioners += group.total * (1 - employmentRate);
+    }
+  }
+  actualPensioners = Math.round(actualPensioners);
 
   // Social Security calculations
   const avgSalary = baseAvgSalary * wageInflationFactor;
   const avgPension = baseAvgPension * wageInflationFactor; // Pensions indexed to wages
 
   const totalSSContributions = actualWorkforce * avgSalary * ssRate;
-  const totalPensionPayments = retiredPop * avgPension;
+  // Use actual pensioners (not all retired-age population) for pension payments
+  const totalPensionPayments = actualPensioners * avgPension;
   const ssBalance = totalSSContributions - totalPensionPayments;
   const ssBalancePerWorker = actualWorkforce > 0 ? ssBalance / actualWorkforce : 0;
 
@@ -256,12 +274,12 @@ const calculateEconomicMetrics = (
     sustainabilityIndex = Math.max(0, Math.min(100, 100 * (1 - deficitRatio)));
   }
 
-  // Overall employment rate
-  const employmentRate = workingAgePop > 0 ? actualWorkforce / workingAgePop : 0;
+  // Labor utilization rate (includes post-retirement workers, so can exceed 1.0)
+  const laborUtilizationRate = workingAgePop > 0 ? actualWorkforce / workingAgePop : 0;
 
   return {
     actualWorkforce,
-    employmentRate,
+    laborUtilizationRate,
     totalSSContributions,
     totalPensionPayments,
     ssBalance,
@@ -293,13 +311,19 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     const retiredPop = currentPop.filter(g => g.age >= workingAgeLimit).reduce((sum, g) => sum + g.total, 0);
     const totalPop = childPop + workingPop + retiredPop;
 
-    // Calculate Median Age
+    // Calculate Median Age with interpolation for precision
     let cumulative = 0;
     let medianAge = 0;
-    for (const g of currentPop) {
-      cumulative += g.total;
-      if (cumulative >= totalPop / 2) {
-        medianAge = g.age;
+    const halfPop = totalPop / 2;
+    for (let i = 0; i < currentPop.length; i++) {
+      const prev = cumulative;
+      cumulative += currentPop[i].total;
+      if (cumulative >= halfPop) {
+        // Interpolate within the age group for precise median
+        const fraction = currentPop[i].total > 0
+          ? (halfPop - prev) / currentPop[i].total
+          : 0;
+        medianAge = currentPop[i].age + fraction;
         break;
       }
     }
@@ -355,35 +379,100 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       total: births
     });
 
+    // Pre-calculate total migration by sex for the year
+    const totalMaleMigration = params.netMigration * migrationData.sexRatio.ratio;
+    const totalFemaleMigration = params.netMigration * (1 - migrationData.sexRatio.ratio);
+
+    // Track migration carry-over to prevent rounding losses
+    let maleMigrationCarry = 0;
+    let femaleMigrationCarry = 0;
+
+    // Track existing age 100 population for aggregation
+    let age100Male = 0;
+    let age100Female = 0;
+
+    // Track total deaths and migration for population balance validation
+    let totalDeaths = 0;
+    let totalMigrationDistributed = 0;
+
     // Age existing population with mortality and migration
     for (let i = 0; i < currentPop.length; i++) {
       const group = currentPop[i];
-      if (group.age >= 100) continue;
+
+      // Handle age 100+ separately: apply high mortality, no migration, aggregate at 100
+      if (group.age >= 100) {
+        // Apply near-certain mortality (use mortality rate for age 100)
+        const mortalityRate100 = getMortalityRate(100, 'male', yearsFromBase, params.mortalityImprovement);
+        const mortalityRate100F = getMortalityRate(100, 'female', yearsFromBase, params.mortalityImprovement);
+        const deathsMale100 = group.male - Math.floor(group.male * (1 - mortalityRate100));
+        const deathsFemale100 = group.female - Math.floor(group.female * (1 - mortalityRate100F));
+        totalDeaths += deathsMale100 + deathsFemale100;
+        const survivingMale = Math.floor(group.male * (1 - mortalityRate100));
+        const survivingFemale = Math.floor(group.female * (1 - mortalityRate100F));
+        age100Male += survivingMale;
+        age100Female += survivingFemale;
+        continue;
+      }
 
       // Apply age-specific mortality rates with improvement over time
       const deathsMale = Math.floor(group.male * getMortalityRate(group.age, 'male', yearsFromBase, params.mortalityImprovement));
       const deathsFemale = Math.floor(group.female * getMortalityRate(group.age, 'female', yearsFromBase, params.mortalityImprovement));
+      totalDeaths += deathsMale + deathsFemale;
 
       // Apply age-specific migration using profiles from INE data
       const migrationWeightMale = getMigrationWeight(group.age, 'male');
       const migrationWeightFemale = getMigrationWeight(group.age, 'female');
 
-      // Total migration split by sex ratio (48% male, 52% female typically)
-      const totalMaleMigration = params.netMigration * migrationData.sexRatio.ratio;
-      const totalFemaleMigration = params.netMigration * (1 - migrationData.sexRatio.ratio);
+      // Calculate migration with carry-over to prevent rounding losses
+      const exactMaleMigration = totalMaleMigration * migrationWeightMale + maleMigrationCarry;
+      const exactFemaleMigration = totalFemaleMigration * migrationWeightFemale + femaleMigrationCarry;
 
-      const migrationMale = Math.floor(totalMaleMigration * migrationWeightMale);
-      const migrationFemale = Math.floor(totalFemaleMigration * migrationWeightFemale);
+      const migrationMale = Math.floor(exactMaleMigration);
+      const migrationFemale = Math.floor(exactFemaleMigration);
+      totalMigrationDistributed += migrationMale + migrationFemale;
+
+      maleMigrationCarry = exactMaleMigration - migrationMale;
+      femaleMigrationCarry = exactFemaleMigration - migrationFemale;
 
       const survivingMale = Math.max(0, group.male - deathsMale + migrationMale);
       const survivingFemale = Math.max(0, group.female - deathsFemale + migrationFemale);
 
+      // Age 99 survivors go to age 100 aggregate
+      if (group.age === 99) {
+        age100Male += survivingMale;
+        age100Female += survivingFemale;
+      } else {
+        nextPop.push({
+          age: group.age + 1,
+          male: survivingMale,
+          female: survivingFemale,
+          total: survivingMale + survivingFemale
+        });
+      }
+    }
+
+    // Add age 100+ aggregate group if any survivors
+    if (age100Male + age100Female > 0) {
       nextPop.push({
-        age: group.age + 1,
-        male: survivingMale,
-        female: survivingFemale,
-        total: survivingMale + survivingFemale
+        age: 100,
+        male: age100Male,
+        female: age100Female,
+        total: age100Male + age100Female
       });
+    }
+
+    // Population balance validation (development check)
+    const nextPopTotal = nextPop.reduce((sum, g) => sum + g.total, 0);
+    const expectedNextPop = totalPop + births - totalDeaths + totalMigrationDistributed;
+    const balanceError = Math.abs(nextPopTotal - expectedNextPop);
+    if (balanceError > 100) {
+      console.warn(
+        `Population balance warning (year ${year}): ` +
+        `expected ${expectedNextPop.toLocaleString()}, got ${nextPopTotal.toLocaleString()} ` +
+        `(error: ${balanceError.toLocaleString()}). ` +
+        `Births: ${births.toLocaleString()}, Deaths: ${totalDeaths.toLocaleString()}, ` +
+        `Migration: ${totalMigrationDistributed.toLocaleString()}`
+      );
     }
 
     currentPop = nextPop;
