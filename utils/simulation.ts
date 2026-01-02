@@ -1,10 +1,11 @@
-import { AgeGroup, YearData, SimulationParams, MortalityImprovementRate } from '../types';
+import { AgeGroup, YearData, SimulationParams, MortalityImprovementRate, EconomicMetrics } from '../types';
 
 // Import real demographic data
 import { populationData } from '../data/population2024';
 import { lifeTables } from '../data/lifeTables';
 import { fertilityData } from '../data/fertilityRates';
 import { migrationData } from '../data/migrationProfile';
+import economicParams from '../data/economicParams.json';
 
 /**
  * Generates initial population data for Portugal (2024)
@@ -95,6 +96,159 @@ const parseAgeGroup = (ageGroup: string): [number, number] => {
 };
 
 /**
+ * Get employment rate for a given age
+ * Returns the proportion of people at this age who are employed
+ * Source: PORDATA employment rates by age group
+ */
+const getEmploymentRate = (age: number): number => {
+  for (const entry of economicParams.employment.rates) {
+    const [minAge, maxAge] = parseAgeGroup(entry.ageGroup);
+    if (age >= minAge && age <= maxAge) {
+      return entry.rate;
+    }
+  }
+  return 0;
+};
+
+/**
+ * Get healthcare cost multiplier for a given age
+ * Returns multiplier relative to 20-64 baseline (1.0)
+ * Source: OECD Health Statistics 2024
+ */
+const getHealthcareMultiplier = (age: number): number => {
+  const multipliers = economicParams.healthcare.ageMultipliers;
+  if (age <= 19) return multipliers['0-19'];
+  if (age <= 64) return multipliers['20-64'];
+  if (age <= 74) return multipliers['65-74'];
+  if (age <= 84) return multipliers['75-84'];
+  return multipliers['85+'];
+};
+
+/**
+ * Calculate economic metrics for a given year's population
+ *
+ * Formula Documentation:
+ *
+ * ACTUAL WORKFORCE:
+ *   Sum over all ages: population[age] * employmentRate[age]
+ *
+ * SS CONTRIBUTIONS:
+ *   actualWorkforce * avgGrossSalary * ssContributionRate * inflationFactor
+ *   Where:
+ *   - avgGrossSalary = 21,070 EUR/year (1505 * 14 months)
+ *   - ssContributionRate = 34.75%
+ *   - inflationFactor = (1 + wageGrowth)^yearsFromBase
+ *
+ * PENSION PAYMENTS:
+ *   retiredPop * avgPension * inflationFactor
+ *   Where:
+ *   - avgPension = 8,120 EUR/year (580 * 14 months)
+ *
+ * HEALTHCARE COSTS:
+ *   Sum over all ages: population[age] * baseCost * ageMultiplier[age] * inflationFactor
+ *   Where:
+ *   - baseCost = 2,744 EUR/year per capita
+ *   - ageMultiplier: 0.6 (0-19), 1.0 (20-64), 2.5 (65-74), 4.0 (75-84), 6.0 (85+)
+ *
+ * SUSTAINABILITY INDEX:
+ *   100 * (1 - deficit / contributions)
+ *   Capped at 0 (critical) to 100 (fully sustainable)
+ */
+const calculateEconomicMetrics = (
+  population: AgeGroup[],
+  retirementAge: number,
+  yearsFromBase: number
+): EconomicMetrics => {
+  // Constants from economicParams.json
+  const ssRate = economicParams.socialSecurity.contributionRates.total; // 0.3475
+  const baseAvgSalary = economicParams.wages.averageGrossSalary2024 *
+                        economicParams.wages.annualMultiplier; // 1505 * 14 = 21070
+  const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
+                         economicParams.wages.annualMultiplier; // 580 * 14 = 8120
+  const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024; // 2744
+  const wageGrowth = economicParams.productivity.annualGrowthRate; // 0.015
+  const healthcareInflation = 0.02; // 2% annual healthcare inflation
+
+  // Inflation factors
+  const wageInflationFactor = Math.pow(1 + wageGrowth, yearsFromBase);
+  const healthcareInflationFactor = Math.pow(1 + healthcareInflation, yearsFromBase);
+
+  // Calculate actual workforce and working-age population
+  let actualWorkforce = 0;
+  let workingAgePop = 0;
+
+  for (const group of population) {
+    if (group.age >= 15 && group.age < retirementAge) {
+      workingAgePop += group.total;
+      actualWorkforce += group.total * getEmploymentRate(group.age);
+    }
+    // Include post-retirement workers (65-69 have 15%, 70+ have 4%)
+    if (group.age >= retirementAge) {
+      actualWorkforce += group.total * getEmploymentRate(group.age);
+    }
+  }
+
+  actualWorkforce = Math.round(actualWorkforce);
+
+  // Calculate retired population
+  const retiredPop = population
+    .filter(g => g.age >= retirementAge)
+    .reduce((sum, g) => sum + g.total, 0);
+
+  // Social Security calculations
+  const avgSalary = baseAvgSalary * wageInflationFactor;
+  const avgPension = baseAvgPension * wageInflationFactor; // Pensions indexed to wages
+
+  const totalSSContributions = actualWorkforce * avgSalary * ssRate;
+  const totalPensionPayments = retiredPop * avgPension;
+  const ssBalance = totalSSContributions - totalPensionPayments;
+  const ssBalancePerWorker = actualWorkforce > 0 ? ssBalance / actualWorkforce : 0;
+
+  // Healthcare calculations
+  let totalHealthcareCost = 0;
+  for (const group of population) {
+    const multiplier = getHealthcareMultiplier(group.age);
+    const costPerPerson = baseHealthcareCost * multiplier * healthcareInflationFactor;
+    totalHealthcareCost += group.total * costPerPerson;
+  }
+
+  const healthcareCostPerWorker = actualWorkforce > 0
+    ? totalHealthcareCost / actualWorkforce
+    : 0;
+
+  // Combined burden (only count SS deficit, not surplus)
+  const ssDeficit = Math.max(0, -ssBalance);
+  const totalBurdenPerWorker = actualWorkforce > 0
+    ? (ssDeficit + totalHealthcareCost) / actualWorkforce
+    : 0;
+
+  // Sustainability index (0-100)
+  // 100 = fully sustainable (contributions >= payments)
+  // 0 = critical (deficit >= contributions)
+  let sustainabilityIndex = 100;
+  if (totalSSContributions > 0) {
+    const deficitRatio = ssDeficit / totalSSContributions;
+    sustainabilityIndex = Math.max(0, Math.min(100, 100 * (1 - deficitRatio)));
+  }
+
+  // Overall employment rate
+  const employmentRate = workingAgePop > 0 ? actualWorkforce / workingAgePop : 0;
+
+  return {
+    actualWorkforce,
+    employmentRate,
+    totalSSContributions,
+    totalPensionPayments,
+    ssBalance,
+    ssBalancePerWorker,
+    totalHealthcareCost,
+    healthcareCostPerWorker,
+    totalBurdenPerWorker,
+    sustainabilityIndex,
+  };
+};
+
+/**
  * Run demographic simulation using cohort-component method
  * This is the standard method used by UN, Eurostat, and national statistics offices
  */
@@ -125,6 +279,9 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
+    // Calculate economic metrics
+    const economic = calculateEconomicMetrics(currentPop, params.retirementAge, yearsFromBase);
+
     results.push({
       year,
       population: JSON.parse(JSON.stringify(currentPop)),
@@ -133,7 +290,8 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       retiredPop: retiredPop,
       childPop,
       oldAgeDependencyRatio: workingPop > 0 ? (retiredPop / workingPop) * 100 : 0,
-      medianAge
+      medianAge,
+      economic
     });
 
     // 2. Evolve population for next year using cohort-component method

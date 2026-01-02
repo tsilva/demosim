@@ -5,6 +5,8 @@ import { runSimulation } from './utils/simulation';
 import { getDemographicAnalysis } from './services/gemini';
 import PyramidChart from './components/PyramidChart';
 import TrendChart from './components/TrendChart';
+import EconomicMetrics from './components/EconomicMetrics';
+import EconomicTrendChart, { EconomicChartType } from './components/EconomicTrendChart';
 
 const START_YEAR = 2024;
 const END_YEAR = 2100;
@@ -31,6 +33,9 @@ const App: React.FC = () => {
   // AI State
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Economic chart type state
+  const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
 
   // --- Handlers ---
   const togglePlay = () => setIsPlaying(!isPlaying);
@@ -320,16 +325,34 @@ const App: React.FC = () => {
                 </div>
              </div>
           </div>
+
+          {/* Economic Metrics */}
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg">
+            <div className="flex items-center gap-2 mb-3 text-amber-400 font-semibold border-b border-slate-800 pb-2">
+              <TrendingUp size={16} /> Economic Indicators
+            </div>
+            <EconomicMetrics metrics={currentData.economic} />
+          </div>
         </div>
 
         {/* Center Column: Pyramid (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-6 h-[700px] lg:h-auto">
-          <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-xl p-4 flex-grow shadow-lg relative overflow-hidden flex flex-col">
+        <div className="lg:col-span-6 flex flex-col gap-4 h-[700px] lg:h-auto">
+          <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg relative overflow-hidden flex flex-col h-[400px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} />
           </div>
-          
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-48 shadow-lg">
-             <TrendChart fullHistory={simulationData} currentYear={currentYear} />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg h-[200px]">
+               <TrendChart fullHistory={simulationData} currentYear={currentYear} />
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg h-[200px]">
+               <EconomicTrendChart
+                 fullHistory={simulationData}
+                 currentYear={currentYear}
+                 chartType={economicChartType}
+                 onChartTypeChange={setEconomicChartType}
+               />
+            </div>
           </div>
         </div>
 
