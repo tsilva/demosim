@@ -350,7 +350,7 @@ const App: React.FC = () => {
         {/* Center Column: Pyramid + Charts + AI (6 cols) */}
         <div className="lg:col-span-6 flex flex-col gap-4">
           <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg relative overflow-hidden flex flex-col h-[400px]">
-             <PyramidChart data={currentData} retirementAge={params.retirementAge} />
+             <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -434,7 +434,7 @@ const App: React.FC = () => {
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-tight">Median Age</p>
                   <p className="text-xl font-bold text-slate-200">
-                    {currentData.medianAge}y
+                    {currentData.medianAge.toFixed(1)}y
                   </p>
                 </div>
                 <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
