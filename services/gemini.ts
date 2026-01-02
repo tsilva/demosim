@@ -47,7 +47,7 @@ export const getDemographicAnalysis = async (
       - Working-Age Population: ${(data.workingAgePop / 1000000).toFixed(2)} Million
 
       Economic Indicators:
-      - Actual Workforce: ${(data.economic.actualWorkforce / 1000000).toFixed(2)} Million (${(data.economic.employmentRate * 100).toFixed(1)}% employment rate)
+      - Actual Workforce: ${(data.economic.actualWorkforce / 1000000).toFixed(2)} Million (${(data.economic.laborUtilizationRate * 100).toFixed(1)}% labor utilization)
       - Social Security Contributions: ${formatCurrency(data.economic.totalSSContributions)}
       - Pension Payments: ${formatCurrency(data.economic.totalPensionPayments)}
       - SS Balance: ${data.economic.ssBalance >= 0 ? '+' : ''}${formatCurrency(data.economic.ssBalance)} (${data.economic.ssBalance >= 0 ? 'surplus' : 'deficit'})
