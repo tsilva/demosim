@@ -35,10 +35,7 @@ export const lifeTables = {
       0.14805, 0.16783, 0.19025, 0.21564, 0.24438, 0.27690, 0.31369, 0.35528, 0.40228, 0.45537,
       0.51530, 0.58290, 0.65907, 0.74479, 0.84111, 0.94917, 1.00000, 1.00000, 1.00000, 1.00000, 1.00000
     ]
-  },
-  mortalityImprovementRate: {
-    male: 0.010,
-    female: 0.008,
-    // Based on 10-year trends: male life expectancy increased 1.40 years, female 0.87 years
   }
+  // Note: mortalityImprovementRate is now configurable via SimulationParams and SCENARIO_PRESETS in types.ts
+  // Default values: male 1.0%, female 0.8% (based on 10-year trends)
 };

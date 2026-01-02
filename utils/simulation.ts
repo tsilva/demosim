@@ -1,4 +1,4 @@
-import { AgeGroup, YearData, SimulationParams } from '../types';
+import { AgeGroup, YearData, SimulationParams, MortalityImprovementRate } from '../types';
 
 // Import real demographic data
 import { populationData } from '../data/population2024';
@@ -24,12 +24,22 @@ export const generateInitialData = (): AgeGroup[] => {
  * Uses INE Life Tables 2022-2024 calibrated to life expectancy:
  * - Male: 78.73 years
  * - Female: 83.96 years
+ *
+ * @param age - Age in years
+ * @param sex - 'male' or 'female'
+ * @param yearsFromBase - Years from projection start (for mortality improvement)
+ * @param mortalityImprovement - Configurable improvement rates from SimulationParams
  */
-const getMortalityRate = (age: number, sex: 'male' | 'female', yearsFromBase: number = 0): number => {
+const getMortalityRate = (
+  age: number,
+  sex: 'male' | 'female',
+  yearsFromBase: number,
+  mortalityImprovement: MortalityImprovementRate
+): number => {
   const qxArray = sex === 'male' ? lifeTables.qx.male : lifeTables.qx.female;
   const improvementRate = sex === 'male'
-    ? lifeTables.mortalityImprovementRate.male
-    : lifeTables.mortalityImprovementRate.female;
+    ? mortalityImprovement.male
+    : mortalityImprovement.female;
 
   // Get base qx, capped at age 100
   const baseQx = qxArray[Math.min(age, 100)];
@@ -162,8 +172,8 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       if (group.age >= 100) continue;
 
       // Apply age-specific mortality rates with improvement over time
-      const deathsMale = Math.floor(group.male * getMortalityRate(group.age, 'male', yearsFromBase));
-      const deathsFemale = Math.floor(group.female * getMortalityRate(group.age, 'female', yearsFromBase));
+      const deathsMale = Math.floor(group.male * getMortalityRate(group.age, 'male', yearsFromBase, params.mortalityImprovement));
+      const deathsFemale = Math.floor(group.female * getMortalityRate(group.age, 'female', yearsFromBase, params.mortalityImprovement));
 
       // Apply age-specific migration using profiles from INE data
       const migrationWeightMale = getMigrationWeight(group.age, 'male');
