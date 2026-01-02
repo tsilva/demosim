@@ -27,13 +27,10 @@ Transform the simulator into a policy-grade projection system that accurately sh
 **Now**: Age-sex specific migration profiles from INE, peak at ages 25-34
 **Files**: `data/migrationProfile.ts`, `utils/simulation.ts`
 
-### 5. Economic Burden (Critical Gap) - PENDING
-**Current**: Only old-age dependency ratio
-**Missing**:
-- Employment rates (not everyone 15-65 works)
-- Social Security financial model (34.75% contribution rate)
-- Healthcare cost curve (65+ spends 4x more)
-- Per-worker burden calculation
+### 5. ✅ Economic Burden - SOLVED
+**Was**: Only old-age dependency ratio
+**Now**: Full economic layer with actual workforce, SS balance, healthcare costs, per-worker burden, sustainability index
+**Files**: `types.ts`, `utils/simulation.ts`, `components/EconomicMetrics.tsx`, `components/EconomicTrendChart.tsx`
 
 ---
 
@@ -53,19 +50,19 @@ Transform the simulator into a policy-grade projection system that accurately sh
 4. ✅ Create realistic migration age profiles
 5. ✅ Add scenario support (low/medium/high) - Low/Medium/High/Custom presets
 
-### Phase 3: Economic Layer
-1. Add employment rates by age (from PORDATA)
-2. Model Social Security contributions/payments
-3. Add healthcare cost curve by age
-4. Calculate per-worker burden metric
-5. Add system sustainability projections
+### Phase 3: Economic Layer ✅ COMPLETE
+1. ✅ Add employment rates by age (from PORDATA) - `getEmploymentRate()` in simulation.ts
+2. ✅ Model Social Security contributions/payments - 34.75% contributions, pension payments
+3. ✅ Add healthcare cost curve by age - 0.6x to 6.0x multipliers by age group
+4. ✅ Calculate per-worker burden metric - SS deficit + healthcare per worker
+5. ✅ Add system sustainability projections - Sustainability Index 0-100
 
-### Phase 4: Enhanced Visualizations
-1. Per-Worker Burden Chart (€/year per worker)
-2. Social Security Balance (contributions vs payments)
-3. Sustainability Timeline
-4. Scenario Comparison
-5. Healthcare Expenditure projections
+### Phase 4: Enhanced Visualizations ✅ COMPLETE
+1. ✅ Per-Worker Burden Chart (€/year per worker) - EconomicTrendChart with burden view
+2. ✅ Social Security Balance (contributions vs payments) - EconomicTrendChart with ssBalance view
+3. ✅ Sustainability Timeline - EconomicTrendChart with sustainability view
+4. Scenario Comparison - PENDING
+5. ✅ Healthcare Expenditure projections - Included in EconomicMetrics component
 
 ---
 
@@ -106,4 +103,7 @@ Transform the simulator into a policy-grade projection system that accurately sh
 | Migration profile | Flat 18-45 | Realistic 20-35 peak | ✅ Done |
 | Mortality improvement | Hardcoded 1% | Configurable 0-2% via scenarios | ✅ Done |
 | Projection scenarios | None | Low/Medium/High/Custom presets | ✅ Done |
-| Economic burden | Dependency ratio | €/worker/year with SS balance | Phase 3 |
+| Economic burden | Dependency ratio | €/worker/year with SS balance | ✅ Done |
+| Actual workforce | Not calculated | Age-specific employment rates | ✅ Done |
+| Healthcare costs | Not calculated | Age-adjusted (0.6x-6.0x) | ✅ Done |
+| Sustainability index | Not calculated | 0-100 scale with thresholds | ✅ Done |
