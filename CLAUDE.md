@@ -53,7 +53,10 @@ Key functions:
 - **SS Contributions**: `workforce × salary × 34.75%`
 - **Pension Payments**: `actualPensioners × avgPension` (excludes working retirees)
 - **Healthcare**: Per-capita cost × age multipliers (0.6x youth → 6x elderly)
-- **Sustainability Index**: `100 × (1 - deficit/contributions)`, 0-100 scale
+- **Sustainability Index**: `100 × (1 - totalBurden / (GDP × 0.40))`, 0-100 scale
+  - `totalBurden = ssDeficit + healthcareCost` (includes healthcare, not just SS)
+  - `GDP = workforce × gdpPerWorker × inflationFactor`
+  - 40% of GDP threshold = system breaking point (0 sustainability)
 
 ### Components
 

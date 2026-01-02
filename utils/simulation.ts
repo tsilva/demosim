@@ -266,12 +266,25 @@ const calculateEconomicMetrics = (
     : 0;
 
   // Sustainability index (0-100)
-  // 100 = fully sustainable (contributions >= payments)
-  // 0 = critical (deficit >= contributions)
+  // Measures total fiscal burden (SS deficit + healthcare) against economic capacity (GDP)
+  // 100 = burden is minimal relative to GDP
+  // 0 = critical (burden exceeds 40% of GDP)
+  //
+  // Formula: sustainabilityIndex = 100 * (1 - totalBurden / (GDP * maxBurdenThreshold))
+  // Where maxBurdenThreshold = 0.40 (40% of GDP is considered the breaking point)
+  const gdpPerWorker = economicParams.productivity.gdpPerWorker2024; // 42,500 EUR
+  const gdpProxy = actualWorkforce * gdpPerWorker * wageInflationFactor;
+  const totalFiscalBurden = ssDeficit + totalHealthcareCost;
+
+  // 40% of GDP as max sustainable burden (SS + healthcare combined)
+  // At this level, the system is considered critically unsustainable
+  const maxSustainableBurdenRatio = 0.40;
   let sustainabilityIndex = 100;
-  if (totalSSContributions > 0) {
-    const deficitRatio = ssDeficit / totalSSContributions;
-    sustainabilityIndex = Math.max(0, Math.min(100, 100 * (1 - deficitRatio)));
+  if (gdpProxy > 0) {
+    const burdenAsShareOfGDP = totalFiscalBurden / gdpProxy;
+    sustainabilityIndex = Math.max(0, Math.min(100,
+      100 * (1 - burdenAsShareOfGDP / maxSustainableBurdenRatio)
+    ));
   }
 
   // Labor utilization rate (includes post-retirement workers, so can exceed 1.0)
