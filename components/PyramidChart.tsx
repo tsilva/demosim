@@ -1,12 +1,10 @@
 import React from 'react';
 import {
-  BarChart,
+  ComposedChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Cell,
   ReferenceLine
@@ -19,29 +17,52 @@ interface Props {
 }
 
 const PyramidChart: React.FC<Props> = ({ data, retirementAge }) => {
-  // Transform data for pyramid: Male negative, Female positive
-  const chartData = data.population.map((group) => ({
-    age: group.age,
-    male: -group.male, // Negative for left side
-    female: group.female,
-    maleRaw: group.male, // For tooltip
-    isRetired: group.age >= retirementAge
-  }));
+  // Find max population for symmetric axis
+  const maxPop = Math.max(...data.population.map(g => g.male + g.female)) / 2;
 
-  // Group by 5 years to make chart cleaner if needed, but per-year is fine for high detail
-  // For better performance/visuals, let's filter to every 2nd year or just pass all if performant
-  const displayData = chartData;
+  // Transform data: split population in half for symmetric pyramid
+  const chartData = data.population.map((group) => {
+    const total = group.male + group.female;
+    const half = total / 2;
+    let status: 'child' | 'working' | 'retired';
+    if (group.age < 15) {
+      status = 'child';
+    } else if (group.age >= retirementAge) {
+      status = 'retired';
+    } else {
+      status = 'working';
+    }
+    return {
+      age: group.age,
+      left: -half,
+      right: half,
+      total,
+      status
+    };
+  });
+
+  const getBarColor = (status: string) => {
+    switch (status) {
+      case 'child': return '#06b6d4'; // cyan
+      case 'working': return '#10b981'; // emerald
+      case 'retired': return '#f43f5e'; // rose
+      default: return '#64748b';
+    }
+  };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const m = Math.abs(payload[0].value);
-      const f = payload[1].value;
+      const entry = payload[0].payload;
+      const statusLabels: Record<string, string> = {
+        child: 'Youth (0-14)',
+        working: 'Working Age',
+        retired: 'Retired'
+      };
       return (
         <div className="bg-slate-800 border border-slate-700 p-2 rounded shadow-xl text-xs">
           <p className="font-bold text-slate-200">Age: {label}</p>
-          <p className="text-blue-400">Male: {m.toLocaleString()}</p>
-          <p className="text-pink-400">Female: {f.toLocaleString()}</p>
-          <p className="text-slate-400 mt-1">Status: {Number(label) >= retirementAge ? 'Retired' : 'Working'}</p>
+          <p className="text-slate-300">Population: {entry.total.toLocaleString()}</p>
+          <p className="text-slate-400 mt-1">Status: {statusLabels[entry.status]}</p>
         </div>
       );
     }
@@ -51,62 +72,77 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge }) => {
   return (
     <div className="h-full w-full flex flex-col">
       <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase">
-        Population Pyramid ({data.year})
+        Population by Age ({data.year})
       </h3>
       <div className="flex-grow min-h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+          <ComposedChart
             layout="vertical"
-            data={displayData}
+            data={chartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            barCategoryGap={0} // Make bars touch
-            barGap={0}
+            barCategoryGap={0}
           >
-            <XAxis type="number" hide />
-            <YAxis 
-              dataKey="age" 
-              type="category" 
-              interval={4} // Show every 5th age label
-              tick={{ fill: '#94a3b8', fontSize: 10 }} 
-              width={30}
-              reversed // Young at bottom
+            <XAxis
+              type="number"
+              domain={[-maxPop * 1.1, maxPop * 1.1]}
+              hide
             />
-            <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
-            <ReferenceLine y={retirementAge} stroke="#fbbf24" strokeDasharray="3 3" label={{ position: 'right', value: 'Retirement', fill: '#fbbf24', fontSize: 10 }} />
-            
-            <Bar dataKey="male" name="Male" stackId="a">
-              {displayData.map((entry, index) => (
-                <Cell 
-                  key={`cell-m-${index}`} 
-                  fill={entry.isRetired ? '#60a5fa' : '#1e3a8a'} // Lighter blue for retired, dark for working
-                  opacity={entry.isRetired ? 0.6 : 0.9}
+            <YAxis
+              dataKey="age"
+              type="category"
+              interval={4}
+              tick={{ fill: '#94a3b8', fontSize: 10 }}
+              width={30}
+              reversed
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+            <ReferenceLine
+              x={0}
+              stroke="#475569"
+              strokeWidth={1}
+            />
+            <ReferenceLine
+              y={15}
+              stroke="#06b6d4"
+              strokeDasharray="3 3"
+              label={{ position: 'right', value: 'Working Age', fill: '#06b6d4', fontSize: 9 }}
+            />
+            <ReferenceLine
+              y={retirementAge}
+              stroke="#fbbf24"
+              strokeDasharray="3 3"
+              label={{ position: 'right', value: 'Retirement', fill: '#fbbf24', fontSize: 9 }}
+            />
+            <Bar dataKey="left" barSize={5}>
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-l-${index}`}
+                  fill={getBarColor(entry.status)}
                 />
               ))}
             </Bar>
-            <Bar dataKey="female" name="Female" stackId="a">
-              {displayData.map((entry, index) => (
-                <Cell 
-                  key={`cell-f-${index}`} 
-                  fill={entry.isRetired ? '#f472b6' : '#831843'} // Lighter pink for retired, dark for working
-                  opacity={entry.isRetired ? 0.6 : 0.9}
+            <Bar dataKey="right" barSize={5}>
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-r-${index}`}
+                  fill={getBarColor(entry.status)}
                 />
               ))}
             </Bar>
-          </BarChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex justify-center gap-4 text-xs mt-2 text-slate-500">
+      <div className="flex justify-center gap-6 text-xs mt-2 text-slate-500">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-900"></div> Working Male
+          <div className="w-3 h-3 bg-cyan-500"></div> Youth (0-14)
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-400 opacity-60"></div> Retired Male
+          <div className="w-3 h-3 bg-emerald-500"></div> Working Age
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-pink-900"></div> Working Female
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-pink-400 opacity-60"></div> Retired Female
+          <div className="w-3 h-3 bg-rose-500"></div> Retired
         </div>
       </div>
     </div>

@@ -1,17 +1,31 @@
 import { GoogleGenAI } from "@google/genai";
 import { YearData, SimulationParams } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialize to avoid crash when API key is not set
+let ai: GoogleGenAI | null = null;
+
+const getAI = (): GoogleGenAI | null => {
+  if (ai) return ai;
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  ai = new GoogleGenAI({ apiKey });
+  return ai;
+};
 
 export const getDemographicAnalysis = async (
   data: YearData,
   params: SimulationParams
 ): Promise<string> => {
+  const client = getAI();
+  if (!client) {
+    return "AI analysis unavailable. Set GEMINI_API_KEY in .env.local to enable this feature.";
+  }
+
   try {
     const prompt = `
       Act as a senior demographic and economic policy expert for Portugal.
       Analyze the following simulated demographic scenario for Portugal in the year ${data.year}.
-      
+
       Simulation Parameters:
       - Retirement Age: ${params.retirementAge}
       - Fertility Rate: ${params.fertilityRate}
@@ -24,17 +38,14 @@ export const getDemographicAnalysis = async (
       - Retired Population: ${(data.retiredPop / 1000000).toFixed(2)} Million
       - Working Population: ${(data.workingAgePop / 1000000).toFixed(2)} Million
 
-      Provide a concise, 3-sentence high-level summary of the societal and economic mood. 
+      Provide a concise, 3-sentence high-level summary of the societal and economic mood.
       Then, provide 3 bullet points on the specific pressure points for the Portuguese economy (Social Security sustainability, Healthcare burden, Labor shortage, etc.).
       Be realistic about the consequences of such a high dependency ratio if it is high (>50%).
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const response = await client.models.generateContent({
+      model: 'gemini-2.0-flash',
       contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 } // Fast response needed
-      }
     });
 
     return response.text || "Unable to generate analysis.";

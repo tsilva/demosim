@@ -14,9 +14,9 @@ const App: React.FC = () => {
   const [currentYear, setCurrentYear] = useState(START_YEAR);
   const [isPlaying, setIsPlaying] = useState(false);
   const [params, setParams] = useState<SimulationParams>({
-    retirementAge: 66, // Portugal's current baseline is 66y 4m, using 66 for slider
-    fertilityRate: 1.43, // Slightly higher than the absolute trough but still low
-    netMigration: 40000, // Reflecting more recent trends of positive net balance
+    retirementAge: 66, // Portugal's current baseline is 66y 5m (2025), using 66 for slider
+    fertilityRate: 1.40, // INE 2024: TFR decreased to 1.40 children per woman
+    netMigration: 110000, // INE 2024: Net migration +109,909 people
   });
   
   // Cache simulation results so scrubbing is instant
@@ -38,8 +38,8 @@ const App: React.FC = () => {
     setCurrentYear(START_YEAR);
     setParams({
       retirementAge: 66,
-      fertilityRate: 1.43,
-      netMigration: 40000,
+      fertilityRate: 1.40,
+      netMigration: 110000,
     });
     setAiAnalysis(null);
   };
