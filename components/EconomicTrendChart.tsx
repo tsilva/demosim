@@ -102,7 +102,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         {config.title} Evolution
       </h3>
 
-      <div className="flex-grow min-h-[150px]">
+      <div className="flex-grow min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}

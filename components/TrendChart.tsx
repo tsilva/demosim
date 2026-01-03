@@ -22,7 +22,7 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
        <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase">
         Dependency Ratio Evolution
       </h3>
-      <div className="flex-grow min-h-[200px]">
+      <div className="flex-grow min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={fullHistory}
