@@ -36,7 +36,7 @@ const InfoTooltip: React.FC<Props> = ({ content, position = 'top' }) => {
       />
       {isVisible && (
         <div
-          className={`absolute z-50 ${positionClasses[position]} w-48 px-3 py-2 text-xs text-slate-200 bg-slate-800 border border-slate-700 rounded-lg shadow-xl`}
+          className={`absolute z-50 ${positionClasses[position]} w-48 px-3 py-2 text-xs text-slate-200 bg-slate-800 border border-slate-700 rounded-lg shadow-xl normal-case`}
         >
           {content}
           <div
