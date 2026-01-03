@@ -47,7 +47,10 @@ const getMortalityRate = (
 
   // Apply mortality improvement over time (mortality decreases as medicine improves)
   // This models increasing life expectancy over the projection period
-  const improvedQx = baseQx * Math.pow(1 - improvementRate, yearsFromBase);
+  // Note: No improvement applied at age 100+ (qx must remain at 1.0 - certain death)
+  const improvedQx = age >= 100
+    ? baseQx
+    : baseQx * Math.pow(1 - improvementRate, yearsFromBase);
 
   return Math.min(improvedQx, 1.0);
 };
@@ -180,7 +183,9 @@ const getHealthcareMultiplier = (age: number): number => {
  *   - ageMultiplier: 0.6 (0-19), 1.0 (20-64), 2.5 (65-74), 4.0 (75-84), 6.0 (85+)
  *
  * SUSTAINABILITY INDEX:
- *   100 * (1 - deficit / contributions)
+ *   100 * (1 - totalBurden / (GDP * 0.40))
+ *   Where totalBurden = ssDeficit + healthcareCost
+ *   40% of GDP threshold = system breaking point (index = 0)
  *   Capped at 0 (critical) to 100 (fully sustainable)
  */
 const calculateEconomicMetrics = (
@@ -196,11 +201,11 @@ const calculateEconomicMetrics = (
                         economicParams.wages.annualMultiplier; // 1505 * 14 = 21070
   const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
                          economicParams.wages.annualMultiplier; // 580 * 14 = 8120
-  // Healthcare cost from OECD is in USD, convert to EUR (1 USD = 0.93 EUR avg 2024)
-  const usdToEur = 0.93;
+  // Healthcare cost from OECD is in USD, convert to EUR
+  const usdToEur = economicParams.healthcare.usdToEur;
   const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur; // ~2552 EUR
   const wageGrowth = economicParams.productivity.annualGrowthRate; // 0.015
-  const healthcareInflation = 0.02; // 2% annual healthcare inflation
+  const healthcareInflation = economicParams.healthcare.annualInflation;
 
   // Inflation factors
   const wageInflationFactor = Math.pow(1 + wageGrowth, yearsFromBase);
@@ -309,6 +314,23 @@ const calculateEconomicMetrics = (
  * This is the standard method used by UN, Eurostat, and national statistics offices
  */
 export const runSimulation = (startYear: number, endYear: number, params: SimulationParams): YearData[] => {
+  // Parameter validation
+  if (params.fertilityRate < 0 || params.fertilityRate > 10) {
+    throw new Error(`Invalid fertility rate: ${params.fertilityRate}. Must be between 0 and 10.`);
+  }
+  if (params.retirementAge < 50 || params.retirementAge > 80) {
+    throw new Error(`Invalid retirement age: ${params.retirementAge}. Must be between 50 and 80.`);
+  }
+  if (params.netMigration < -500000 || params.netMigration > 500000) {
+    throw new Error(`Invalid net migration: ${params.netMigration}. Must be between -500,000 and 500,000.`);
+  }
+  if (params.mortalityImprovement.male < -0.05 || params.mortalityImprovement.male > 0.05) {
+    throw new Error(`Invalid male mortality improvement: ${params.mortalityImprovement.male}. Must be between -0.05 and 0.05.`);
+  }
+  if (params.mortalityImprovement.female < -0.05 || params.mortalityImprovement.female > 0.05) {
+    throw new Error(`Invalid female mortality improvement: ${params.mortalityImprovement.female}. Must be between -0.05 and 0.05.`);
+  }
+
   let currentPop = generateInitialData();
   const results: YearData[] = [];
   const baseYear = startYear;
@@ -377,7 +399,7 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
-    const births = Math.floor(totalBirths);
+    const births = Math.round(totalBirths);
 
     // Sex ratio at birth: ~105 males per 100 females
     const sexRatio = fertilityData.sexRatioAtBirth.ratio;
@@ -464,6 +486,15 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
+    // Apply remaining migration carry-over to prevent fractional migrant loss
+    if (maleMigrationCarry >= 0.5 || femaleMigrationCarry >= 0.5) {
+      const finalMaleMigration = Math.round(maleMigrationCarry);
+      const finalFemaleMigration = Math.round(femaleMigrationCarry);
+      age100Male += finalMaleMigration;
+      age100Female += finalFemaleMigration;
+      totalMigrationDistributed += finalMaleMigration + finalFemaleMigration;
+    }
+
     // Add age 100+ aggregate group if any survivors
     if (age100Male + age100Female > 0) {
       nextPop.push({
@@ -475,10 +506,11 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     }
 
     // Population balance validation (development check)
+    // Threshold of 500 accounts for cumulative rounding across 101 age groups
     const nextPopTotal = nextPop.reduce((sum, g) => sum + g.total, 0);
     const expectedNextPop = totalPop + births - totalDeaths + totalMigrationDistributed;
     const balanceError = Math.abs(nextPopTotal - expectedNextPop);
-    if (balanceError > 100) {
+    if (balanceError > 500) {
       console.warn(
         `Population balance warning (year ${year}): ` +
         `expected ${expectedNextPop.toLocaleString()}, got ${nextPopTotal.toLocaleString()} ` +
