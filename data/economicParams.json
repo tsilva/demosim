@@ -68,6 +68,8 @@
   "healthcare": {
     "perCapitaSpending2024": 2744,
     "currency": "USD",
+    "usdToEur": 0.93,
+    "annualInflation": 0.02,
     "gdpShare": 0.106,
     "publicShare": 0.66,
     "privateShare": 0.34,
