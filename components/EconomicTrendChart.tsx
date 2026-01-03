@@ -10,6 +10,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { YearData } from '../types';
+import InfoTooltip from './InfoTooltip';
 
 export type EconomicChartType = 'ssBalance' | 'burden' | 'sustainability';
 
@@ -98,8 +99,15 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
       </div>
 
-      <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase">
+      <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase flex items-center justify-center">
         {config.title} Evolution
+        <InfoTooltip content={
+          chartType === 'ssBalance'
+            ? "Social Security balance: contributions minus pension payments. Negative values indicate deficit requiring government subsidies or debt."
+            : chartType === 'burden'
+            ? "Total burden per worker: combined SS deficit and healthcare costs divided by workforce. Shows individual worker's share of supporting the system."
+            : "Sustainability index (0-100): measures system viability. 100 = fully sustainable, 0 = total burden exceeds 40% of GDP (breaking point)."
+        } />
       </h3>
 
       <div className="flex-grow min-h-0">

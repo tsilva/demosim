@@ -10,6 +10,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { YearData } from '../types';
+import InfoTooltip from './InfoTooltip';
 
 interface Props {
   data: YearData;
@@ -72,8 +73,9 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase">
+      <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase flex items-center justify-center">
         Population by Age ({data.year})
+        <InfoTooltip content="Age pyramid showing population distribution. Cyan = youth (0-14), Green = working age, Rose = retired. A healthy pyramid has a wide base; inverted pyramids indicate aging populations." />
       </h3>
       <div className="flex-grow min-h-[300px]">
         <ResponsiveContainer width="100%" height="100%">

@@ -10,6 +10,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { YearData } from '../types';
+import InfoTooltip from './InfoTooltip';
 
 interface Props {
   fullHistory: YearData[];
@@ -19,8 +20,9 @@ interface Props {
 const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
   return (
     <div className="h-full w-full flex flex-col">
-       <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase">
+       <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase flex items-center justify-center">
         Dependency Ratio Evolution
+        <InfoTooltip content="Old-age dependency ratio over time: retirees per 100 working-age people. Higher values mean more strain on social security as fewer workers support more pensioners." />
       </h3>
       <div className="flex-grow min-h-0">
         <ResponsiveContainer width="100%" height="100%">
