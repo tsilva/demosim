@@ -6,7 +6,7 @@
   [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vite.dev)
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-  **Explore Portugal's demographic future from 2024 to 2100 with real-time economic impact projections**
+  **📊 Explore Portugal's demographic future from 2024 to 2100 with real-time economic impact projections 🇵🇹**
 
   [Live Demo](https://ai.studio/apps/drive/1IYK9_16UMFj2LJoC7_2gcVk6sJnFgARm) · [CLAUDE.md](CLAUDE.md)
 </div>
