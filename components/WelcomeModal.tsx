@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Sliders, TrendingUp } from 'lucide-react';
 
-const STORAGE_KEY = 'demography-simulator-welcome-dismissed';
+const STORAGE_KEY = 'demosim-welcome-dismissed';
 
 interface Props {
   onClose: () => void;
