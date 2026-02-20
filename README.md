@@ -10,7 +10,7 @@
 
   **📊 Explore Portugal's demographic future from 2024 to 2100 with real-time economic impact projections 🇵🇹**
 
-  [Live Demo](https://ai.studio/apps/drive/1IYK9_16UMFj2LJoC7_2gcVk6sJnFgARm) · [CLAUDE.md](CLAUDE.md)
+  [Live Demo](https://demosim.tsilva.eu) · [CLAUDE.md](CLAUDE.md)
 </div>
 
 ## Overview
@@ -23,7 +23,6 @@ Adjust fertility rates, migration, retirement age, and mortality improvements to
 
 - **Population Pyramid Visualization** - Watch the age structure transform year by year with animated transitions
 - **Economic Impact Modeling** - Track social security balance, healthcare costs, and fiscal sustainability
-- **AI Policy Insights** - Get Gemini-powered analysis of demographic consequences for any year
 - **Scenario Presets** - Compare low, medium, and high projection scenarios from Eurostat EUROPOP2023
 - **Real-Time Scrubbing** - Instantly jump to any year with cached simulation results
 
@@ -31,15 +30,6 @@ Adjust fertility rates, migration, retirement age, and mortality improvements to
 
 ```bash
 npm install
-```
-
-Create `.env.local` with your Gemini API key:
-
-```
-GEMINI_API_KEY=your_api_key_here
-```
-
-```bash
 npm run dev
 ```
 
@@ -82,10 +72,8 @@ All demographic data is calibrated to INE 2024 official statistics:
 │   ├── lifeTables.ts       # Mortality rates (qx)
 │   ├── fertilityRates.ts   # Age-specific fertility rates
 │   └── migrationProfile.ts # Migration weights by age
-├── utils/
-│   └── simulation.ts       # Cohort-component projection engine
-└── services/
-    └── gemini.ts           # AI analysis integration
+└── utils/
+    └── simulation.ts       # Cohort-component projection engine
 ```
 
 ## Economic Model

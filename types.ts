@@ -101,7 +101,4 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   }
 };
 
-export interface AIAnalysis {
-  text: string;
-  year: number;
-}
+
