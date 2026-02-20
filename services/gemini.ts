@@ -51,8 +51,8 @@ export const getDemographicAnalysis = async (
       - Social Security Contributions: ${formatCurrency(data.economic.totalSSContributions)}
       - Pension Payments: ${formatCurrency(data.economic.totalPensionPayments)}
       - SS Balance: ${data.economic.ssBalance >= 0 ? '+' : ''}${formatCurrency(data.economic.ssBalance)} (${data.economic.ssBalance >= 0 ? 'surplus' : 'deficit'})
-      - Total Healthcare Cost: ${formatCurrency(data.economic.totalHealthcareCost)}
-      - Economic Burden per Worker: ${formatCurrency(data.economic.totalBurdenPerWorker)}/year
+      - Total Healthcare Cost: ${formatCurrency(data.economic.totalHealthcareCost)} (public share: ${formatCurrency(data.economic.publicHealthcareCost)})
+      - Economic Burden per Worker: ${formatCurrency(data.economic.totalBurdenPerWorker)}/year (SS deficit + public healthcare only)
       - Sustainability Index: ${data.economic.sustainabilityIndex.toFixed(0)}/100 (${data.economic.sustainabilityIndex < 30 ? 'CRITICAL' : data.economic.sustainabilityIndex < 60 ? 'WARNING' : 'Sustainable'})
 
       Provide a concise, 3-sentence high-level summary of the societal and economic mood.

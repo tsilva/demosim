@@ -17,8 +17,9 @@ export interface EconomicMetrics {
   ssBalancePerWorker: number;        // EUR/year per worker
 
   // Healthcare
-  totalHealthcareCost: number;       // EUR/year for population
-  healthcareCostPerWorker: number;   // EUR/year per worker
+  totalHealthcareCost: number;       // EUR/year for population (public + private)
+  publicHealthcareCost: number;      // EUR/year public share only (used in fiscal burden)
+  healthcareCostPerWorker: number;   // EUR/year per worker (total)
 
   // Combined
   totalBurdenPerWorker: number;      // SS deficit + healthcare per worker

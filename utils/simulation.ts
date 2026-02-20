@@ -184,7 +184,7 @@ const getHealthcareMultiplier = (age: number): number => {
  *
  * SUSTAINABILITY INDEX:
  *   100 * (1 - totalBurden / (GDP * 0.40))
- *   Where totalBurden = ssDeficit + healthcareCost
+ *   Where totalBurden = ssDeficit + publicHealthcareCost (66% of total)
  *   40% of GDP threshold = system breaking point (index = 0)
  *   Capped at 0 (critical) to 100 (fully sustainable)
  */
@@ -260,14 +260,18 @@ const calculateEconomicMetrics = (
     totalHealthcareCost += group.total * costPerPerson;
   }
 
+  // Public healthcare = government-funded share (66% per OECD data)
+  const publicShare = economicParams.healthcare.publicShare; // 0.66
+  const publicHealthcareCost = totalHealthcareCost * publicShare;
+
   const healthcareCostPerWorker = actualWorkforce > 0
     ? totalHealthcareCost / actualWorkforce
     : 0;
 
-  // Combined burden (only count SS deficit, not surplus)
+  // Combined fiscal burden uses only public healthcare (government obligation)
   const ssDeficit = Math.max(0, -ssBalance);
   const totalBurdenPerWorker = actualWorkforce > 0
-    ? (ssDeficit + totalHealthcareCost) / actualWorkforce
+    ? (ssDeficit + publicHealthcareCost) / actualWorkforce
     : 0;
 
   // Sustainability index (0-100)
@@ -279,12 +283,12 @@ const calculateEconomicMetrics = (
   // Where maxBurdenThreshold = 0.40 (40% of GDP is considered the breaking point)
   const gdpPerWorker = economicParams.productivity.gdpPerWorker2024; // 42,500 EUR
   const gdpProxy = actualWorkforce * gdpPerWorker * wageInflationFactor;
-  const totalFiscalBurden = ssDeficit + totalHealthcareCost;
+  const totalFiscalBurden = ssDeficit + publicHealthcareCost;
 
   // 40% of GDP as max sustainable burden (SS + healthcare combined)
   // At this level, the system is considered critically unsustainable
   const maxSustainableBurdenRatio = 0.40;
-  let sustainabilityIndex = 100;
+  let sustainabilityIndex = 0; // Default to critical (0) when GDP is zero
   if (gdpProxy > 0) {
     const burdenAsShareOfGDP = totalFiscalBurden / gdpProxy;
     sustainabilityIndex = Math.max(0, Math.min(100,
@@ -303,6 +307,7 @@ const calculateEconomicMetrics = (
     ssBalance,
     ssBalancePerWorker,
     totalHealthcareCost,
+    publicHealthcareCost,
     healthcareCostPerWorker,
     totalBurdenPerWorker,
     sustainabilityIndex,
@@ -374,7 +379,7 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
     results.push({
       year,
-      population: JSON.parse(JSON.stringify(currentPop)),
+      population: structuredClone(currentPop),
       totalPopulation: totalPop,
       workingAgePop: workingPop,
       retiredPop: retiredPop,
@@ -422,6 +427,11 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     let maleMigrationCarry = 0;
     let femaleMigrationCarry = 0;
 
+    // Track death carry-over to eliminate systematic survival bias from Math.floor
+    // Fractional deaths accumulate and are counted when they reach whole numbers
+    let deathCarryMale = 0;
+    let deathCarryFemale = 0;
+
     // Track existing age 100 population for aggregation
     let age100Male = 0;
     let age100Female = 0;
@@ -436,22 +446,29 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
       // Handle age 100+ separately: apply high mortality, no migration, aggregate at 100
       if (group.age >= 100) {
-        // Apply near-certain mortality (use mortality rate for age 100)
-        const mortalityRate100 = getMortalityRate(100, 'male', yearsFromBase, params.mortalityImprovement);
-        const mortalityRate100F = getMortalityRate(100, 'female', yearsFromBase, params.mortalityImprovement);
-        const deathsMale100 = group.male - Math.floor(group.male * (1 - mortalityRate100));
-        const deathsFemale100 = group.female - Math.floor(group.female * (1 - mortalityRate100F));
+        // Apply near-certain mortality (use mortality rate for age 100) with accumulator
+        const qx100M = getMortalityRate(100, 'male', yearsFromBase, params.mortalityImprovement);
+        const qx100F = getMortalityRate(100, 'female', yearsFromBase, params.mortalityImprovement);
+        const exactDeaths100M = group.male * qx100M + deathCarryMale;
+        const exactDeaths100F = group.female * qx100F + deathCarryFemale;
+        const deathsMale100 = Math.round(exactDeaths100M);
+        const deathsFemale100 = Math.round(exactDeaths100F);
+        deathCarryMale = exactDeaths100M - deathsMale100;
+        deathCarryFemale = exactDeaths100F - deathsFemale100;
         totalDeaths += deathsMale100 + deathsFemale100;
-        const survivingMale = Math.floor(group.male * (1 - mortalityRate100));
-        const survivingFemale = Math.floor(group.female * (1 - mortalityRate100F));
-        age100Male += survivingMale;
-        age100Female += survivingFemale;
+        age100Male += Math.max(0, group.male - deathsMale100);
+        age100Female += Math.max(0, group.female - deathsFemale100);
         continue;
       }
 
       // Apply age-specific mortality rates with improvement over time
-      const deathsMale = Math.floor(group.male * getMortalityRate(group.age, 'male', yearsFromBase, params.mortalityImprovement));
-      const deathsFemale = Math.floor(group.female * getMortalityRate(group.age, 'female', yearsFromBase, params.mortalityImprovement));
+      // Uses accumulator pattern: fractional deaths carry over to eliminate systematic bias
+      const exactDeathsMale = group.male * getMortalityRate(group.age, 'male', yearsFromBase, params.mortalityImprovement) + deathCarryMale;
+      const exactDeathsFemale = group.female * getMortalityRate(group.age, 'female', yearsFromBase, params.mortalityImprovement) + deathCarryFemale;
+      const deathsMale = Math.round(exactDeathsMale);
+      const deathsFemale = Math.round(exactDeathsFemale);
+      deathCarryMale = exactDeathsMale - deathsMale;
+      deathCarryFemale = exactDeathsFemale - deathsFemale;
       totalDeaths += deathsMale + deathsFemale;
 
       // Apply age-specific migration using profiles from INE data
@@ -486,12 +503,15 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
-    // Apply remaining migration carry-over to prevent fractional migrant loss
-    if (maleMigrationCarry >= 0.5 || femaleMigrationCarry >= 0.5) {
-      const finalMaleMigration = Math.round(maleMigrationCarry);
-      const finalFemaleMigration = Math.round(femaleMigrationCarry);
-      age100Male += finalMaleMigration;
-      age100Female += finalFemaleMigration;
+    // Apply remaining migration carry-over to the last regular age cohort
+    // This prevents fractional migrants from being lost or misattributed to age 100+
+    const finalMaleMigration = Math.round(maleMigrationCarry);
+    const finalFemaleMigration = Math.round(femaleMigrationCarry);
+    if ((finalMaleMigration !== 0 || finalFemaleMigration !== 0) && nextPop.length > 1) {
+      const lastRegularIdx = nextPop.length - 1; // Last entry before age 100+ is added
+      nextPop[lastRegularIdx].male += finalMaleMigration;
+      nextPop[lastRegularIdx].female += finalFemaleMigration;
+      nextPop[lastRegularIdx].total += finalMaleMigration + finalFemaleMigration;
       totalMigrationDistributed += finalMaleMigration + finalFemaleMigration;
     }
 
