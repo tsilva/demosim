@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="logo.png" alt="demography-simulator" width="512"/>
+  <img src="logo.png" alt="demosim" width="512"/>
 
-  # demography-simulator
+  # demosim
 
   [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript)](https://www.typescriptlang.org)
