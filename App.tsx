@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, BrainCircuit } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Settings, Play, Pause, RefreshCw, TrendingUp, Users } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
 import { runSimulation } from './utils/simulation';
-import { getDemographicAnalysis } from './services/gemini';
 import PyramidChart from './components/PyramidChart';
 import TrendChart from './components/TrendChart';
 import EconomicMetrics from './components/EconomicMetrics';
@@ -35,10 +34,6 @@ const App: React.FC = () => {
 
   const currentData = simulationData.find(d => d.year === currentYear) || simulationData[0];
 
-  // AI State
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   // Economic chart type state
   const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
 
@@ -60,7 +55,6 @@ const App: React.FC = () => {
       workforceEntryAgeShift: 0,
       unemploymentAdjustment: 0,
     });
-    setAiAnalysis(null);
   };
 
   // Handle scenario selection
@@ -84,14 +78,6 @@ const App: React.FC = () => {
     setSelectedScenario('custom');
     setParams(prev => ({ ...prev, [key]: value }));
   };
-
-  const handleAnalysis = useCallback(async () => {
-    setIsAnalyzing(true);
-    setAiAnalysis(null);
-    const analysis = await getDemographicAnalysis(currentData, params);
-    setAiAnalysis(analysis);
-    setIsAnalyzing(false);
-  }, [currentData, params]);
 
   // Animation Loop
   useEffect(() => {
@@ -371,7 +357,7 @@ const App: React.FC = () => {
 
         </div>
 
-        {/* Center Column: Pyramid + Charts + AI (6 cols) */}
+        {/* Center Column: Pyramid + Charts (6 cols) */}
         <div className="lg:col-span-6 flex flex-col gap-4">
           <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg relative overflow-hidden flex flex-col h-[400px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
@@ -391,39 +377,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* AI Analysis */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
-            <div className="flex items-center gap-2 mb-3 text-purple-400 font-semibold border-b border-slate-800 pb-2">
-              <BrainCircuit size={18} /> AI Policy Insight
-            </div>
-
-            <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 text-sm text-slate-300 overflow-y-auto mb-3 h-[150px] scrollbar-thin scrollbar-thumb-slate-800">
-              {isAnalyzing ? (
-                <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
-                  <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-                  <p className="text-xs">Consulting simulation model...</p>
-                </div>
-              ) : aiAnalysis ? (
-                 <div className="prose prose-invert prose-sm leading-relaxed">
-                    <p className="whitespace-pre-line text-slate-200">{aiAnalysis}</p>
-                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 text-center p-4">
-                  <BrainCircuit size={32} className="opacity-10" />
-                  <p className="text-xs">How does {currentYear} look for the Portuguese state?</p>
-                  <p className="text-[10px] opacity-60">Generate an AI assessment based on the current data visualization.</p>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={handleAnalysis}
-              disabled={isAnalyzing}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm"
-            >
-              {isAnalyzing ? 'Thinking...' : `Analyze ${currentYear} Consequences`}
-            </button>
-          </div>
         </div>
 
         {/* Right Column: Metrics & Economic Indicators (3 cols) */}

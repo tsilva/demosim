@@ -11,8 +11,6 @@ npm run build        # Production build
 npm run preview      # Preview build
 ```
 
-Requires `GEMINI_API_KEY` in `.env.local` for AI analysis.
-
 ## Architecture
 
 React 19 + TypeScript + Vite SPA simulating Portugal's demographic evolution 2024-2100.
