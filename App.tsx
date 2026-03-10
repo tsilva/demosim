@@ -7,7 +7,6 @@ import TrendChart from './components/TrendChart';
 import EconomicMetrics from './components/EconomicMetrics';
 import EconomicTrendChart, { EconomicChartType } from './components/EconomicTrendChart';
 import InfoTooltip from './components/InfoTooltip';
-import WelcomeModal, { useWelcomeModal } from './components/WelcomeModal';
 import AboutPanel from './components/AboutPanel';
 
 const START_YEAR = 2024;
@@ -36,9 +35,6 @@ const App: React.FC = () => {
 
   // Economic chart type state
   const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
-
-  // Welcome modal state
-  const { showWelcome, closeWelcome } = useWelcomeModal();
 
   // --- Handlers ---
   const togglePlay = () => setIsPlaying(!isPlaying);
@@ -98,9 +94,6 @@ const App: React.FC = () => {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-slate-950 p-4 font-sans text-slate-100 md:p-8">
-      {/* Welcome Modal for first-time visitors */}
-      {showWelcome && <WelcomeModal onClose={closeWelcome} />}
-
       <a
         href="https://github.com/tsilva/demosim"
         target="_blank"
