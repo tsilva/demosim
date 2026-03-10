@@ -346,7 +346,7 @@ const App: React.FC = () => {
 
         {/* Center Column: Pyramid + Charts (6 cols) */}
         <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
-          <div className="relative flex h-[400px] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 p-4 shadow-lg backdrop-blur-sm sm:h-[420px]">
+          <div className="relative flex h-[400px] min-w-0 flex-col overflow-visible rounded-xl border border-slate-800 bg-slate-900/40 p-4 shadow-lg backdrop-blur-sm sm:h-[420px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
           </div>
 

@@ -104,7 +104,12 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                allowEscapeViewBox={{ x: true, y: true }}
+                wrapperStyle={{ zIndex: 20 }}
+              />
               <ReferenceLine
                 x={0}
                 stroke="#475569"
