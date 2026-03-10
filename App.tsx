@@ -77,50 +77,50 @@ const App: React.FC = () => {
   }, [isPlaying]);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-slate-950 p-4 font-sans text-slate-100 md:p-8">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-slate-950 p-3 font-sans text-slate-100 sm:p-4 md:p-8">
       <a
         href="https://github.com/tsilva/demosim"
         target="_blank"
         rel="noreferrer"
         aria-label="View source on GitHub"
-        className="absolute right-4 top-4 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white md:right-8 md:top-8"
+        className="absolute right-3 top-3 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white sm:right-4 sm:top-4 md:right-8 md:top-8"
       >
         <Github size={20} />
       </a>
 
       {/* Header */}
-      <header className="mb-8 flex flex-col items-start justify-between gap-6 border-b border-slate-800 pb-4 pr-16 sm:flex-row sm:items-center sm:pr-20">
+      <header className="mb-6 flex flex-col items-start justify-between gap-4 border-b border-slate-800 pb-4 pr-14 sm:mb-8 sm:gap-6 sm:pr-20 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
+          <h1 className="bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
             Portugal 2100
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
             Demographic Impact Simulator
           </p>
         </div>
-        <div className="flex w-full items-center justify-between gap-4 sm:mt-0 sm:w-auto sm:justify-start">
+        <div className="flex w-full items-end justify-between gap-3 sm:mt-0 sm:w-auto sm:items-center sm:justify-start sm:gap-4">
           <button 
             onClick={togglePlay}
-            className={`p-3 rounded-full shadow-lg transition-all ${isPlaying ? 'bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/50' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}
+            className={`rounded-full p-2.5 shadow-lg transition-all sm:p-3 ${isPlaying ? 'bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/50' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}
             title={isPlaying ? "Pause Simulation" : "Start Simulation"}
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
           </button>
           <div className="text-right">
              <div className="text-xs text-slate-500 uppercase tracking-wider">Simulation Year</div>
-             <div className="text-4xl font-mono font-bold text-white">{currentYear}</div>
+             <div className="text-3xl font-mono font-bold text-white sm:text-4xl">{currentYear}</div>
           </div>
         </div>
       </header>
 
       {/* Main Grid */}
-      <main className="grid flex-grow grid-cols-1 gap-6 lg:grid-cols-12">
+      <main className="grid flex-grow grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-12">
         
         {/* Left Column: Controls & Key Metrics (3 cols) */}
-        <div className="space-y-6 lg:col-span-3">
+        <div className="order-3 space-y-4 sm:space-y-6 lg:order-1 lg:col-span-3">
           
           {/* Controls Card */}
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-5 shadow-lg">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm sm:p-5">
             <div className="flex items-center gap-2 mb-4 text-slate-200 font-semibold border-b border-slate-800 pb-2">
               <Settings size={18} className="text-emerald-400" /> Simulation Parameters
             </div>
@@ -129,12 +129,12 @@ const App: React.FC = () => {
               {/* Scenario Selection */}
               <div>
                 <label className="text-xs text-slate-400 mb-2 block">Projection Scenario</label>
-                <div className="grid grid-cols-4 gap-1">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-1">
                   {(['low', 'medium', 'high', 'custom'] as ScenarioType[]).map((scenario) => (
                     <button
                       key={scenario}
                       onClick={() => handleScenarioChange(scenario)}
-                      className={`py-1.5 px-2 text-[10px] font-medium rounded-lg transition-all ${
+                      className={`rounded-lg px-2 py-2 text-xs font-medium transition-all sm:py-1.5 sm:text-[10px] ${
                         selectedScenario === scenario
                           ? scenario === 'low' ? 'bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/50'
                           : scenario === 'medium' ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50'
@@ -345,16 +345,16 @@ const App: React.FC = () => {
         </div>
 
         {/* Center Column: Pyramid + Charts (6 cols) */}
-        <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
-          <div className="relative flex h-[400px] min-w-0 flex-col overflow-visible rounded-xl border border-slate-800 bg-slate-900/40 p-4 shadow-lg backdrop-blur-sm sm:h-[420px]">
+        <div className="order-1 flex min-w-0 flex-col gap-4 lg:order-2 lg:col-span-6">
+          <div className="relative flex h-[340px] min-w-0 flex-col overflow-visible rounded-xl border border-slate-800 bg-slate-900/40 p-3 shadow-lg backdrop-blur-sm sm:h-[400px] sm:p-4 md:h-[420px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <div className="h-[220px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:h-[240px] xl:h-[200px]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="h-[240px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[250px] sm:p-4 xl:h-[200px]">
                <TrendChart fullHistory={simulationData} currentYear={currentYear} />
             </div>
-            <div className="h-[240px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:h-[250px] xl:h-[200px]">
+            <div className="h-[250px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[260px] sm:p-4 xl:h-[200px]">
                <EconomicTrendChart
                  fullHistory={simulationData}
                  currentYear={currentYear}
@@ -367,10 +367,10 @@ const App: React.FC = () => {
         </div>
 
         {/* Right Column: Metrics & Economic Indicators (3 cols) */}
-        <div className="space-y-4 lg:col-span-3">
+        <div className="order-2 space-y-4 lg:order-3 lg:col-span-3">
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 gap-3">
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-md sm:p-3">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
                     Dependency Ratio
@@ -385,7 +385,7 @@ const App: React.FC = () => {
                 </div>
              </div>
 
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
+             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-md sm:p-3">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-tight">Total Population</p>
                   <p className="text-xl font-bold text-slate-200">
@@ -397,7 +397,7 @@ const App: React.FC = () => {
                 </div>
              </div>
 
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
+             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-md sm:p-3">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-tight">Median Age</p>
                   <p className="text-xl font-bold text-slate-200">
@@ -411,7 +411,7 @@ const App: React.FC = () => {
           </div>
 
           {/* Economic Metrics */}
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-3 text-amber-400 font-semibold border-b border-slate-800 pb-2 text-sm">
               <TrendingUp size={16} /> Economic Indicators
             </div>
@@ -421,7 +421,7 @@ const App: React.FC = () => {
 
       </main>
 
-      <footer className="mt-8">
+      <footer className="mt-6 sm:mt-8">
         <AboutPanel />
         <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center text-[10px] text-slate-600 sm:flex-row sm:gap-4">
           <span>Data based on Eurostat 2024 official statistics</span>

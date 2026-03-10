@@ -69,10 +69,10 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
       {/* Chart type toggle */}
-      <div className="mb-2 flex flex-wrap justify-center gap-1">
+      <div className="mb-2 flex flex-wrap justify-center gap-1.5 sm:gap-1">
         <button
           onClick={() => onChartTypeChange('ssBalance')}
-          className={`min-w-0 flex-1 px-2 py-0.5 text-[10px] rounded transition-colors sm:flex-none ${
+          className={`min-w-0 flex-1 rounded px-2 py-1 text-[11px] transition-colors sm:flex-none sm:py-0.5 sm:text-[10px] ${
             chartType === 'ssBalance'
               ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
@@ -82,7 +82,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
         <button
           onClick={() => onChartTypeChange('burden')}
-          className={`min-w-0 flex-1 px-2 py-0.5 text-[10px] rounded transition-colors sm:flex-none ${
+          className={`min-w-0 flex-1 rounded px-2 py-1 text-[11px] transition-colors sm:flex-none sm:py-0.5 sm:text-[10px] ${
             chartType === 'burden'
               ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
@@ -92,7 +92,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
         <button
           onClick={() => onChartTypeChange('sustainability')}
-          className={`min-w-0 flex-1 px-2 py-0.5 text-[10px] rounded transition-colors sm:flex-none ${
+          className={`min-w-0 flex-1 rounded px-2 py-1 text-[11px] transition-colors sm:flex-none sm:py-0.5 sm:text-[10px] ${
             chartType === 'sustainability'
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
@@ -102,7 +102,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
       </div>
 
-      <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase flex items-center justify-center">
+      <h3 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
         {config.title} Evolution
         <InfoTooltip content={
           chartType === 'ssBalance'

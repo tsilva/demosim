@@ -5,10 +5,10 @@ const AboutPanel: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="mt-4">
+    <div className="mt-3 sm:mt-4">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 text-slate-500 hover:text-slate-400 transition-colors text-xs mx-auto"
+        className="mx-auto flex items-center gap-2 text-[11px] text-slate-500 transition-colors hover:text-slate-400 sm:text-xs"
       >
         <Info size={14} />
         About this simulation
@@ -16,8 +16,8 @@ const AboutPanel: React.FC = () => {
       </button>
 
       {isExpanded && (
-        <div className="mt-4 bg-slate-900/50 border border-slate-800 rounded-xl p-6 max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6 text-sm">
+        <div className="mx-auto mt-4 max-w-4xl rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
+          <div className="grid gap-5 text-sm sm:gap-6 md:grid-cols-3">
             {/* Data Sources */}
             <div>
               <div className="flex items-center gap-2 text-emerald-400 font-medium mb-3">

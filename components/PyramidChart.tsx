@@ -76,7 +76,7 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
-      <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase flex items-center justify-center">
+      <h3 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
         Population by Age ({data.year})
         <InfoTooltip content="Age pyramid showing population distribution. Cyan = youth (0-14), Green = working age, Rose = retired. A healthy pyramid has a wide base; inverted pyramids indicate aging populations." />
       </h3>
@@ -155,7 +155,7 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
           </ResponsiveContainer>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
+      <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-slate-500 sm:gap-x-6 sm:text-xs">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-cyan-500"></div> Youth (0-14)
         </div>
