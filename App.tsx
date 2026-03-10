@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>(DEFAULT_SCENARIO);
   const [params, setParams] = useState<SimulationParams>(() => cloneParams(SCENARIO_PRESETS[DEFAULT_SCENARIO].params));
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   
   // Cache simulation results so scrubbing is instant
   const simulationData = useMemo(() => {
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   }, [params]);
 
   const currentData = simulationData.find(d => d.year === currentYear) || simulationData[0];
+  const isCustomScenario = selectedScenario === 'custom';
 
   // Economic chart type state
   const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
@@ -43,6 +45,7 @@ const App: React.FC = () => {
     setCurrentYear(START_YEAR);
     setSelectedScenario(DEFAULT_SCENARIO);
     setParams(cloneParams(SCENARIO_PRESETS[DEFAULT_SCENARIO].params));
+    setShowAdvancedControls(false);
   };
 
   // Handle scenario selection
@@ -89,8 +92,8 @@ const App: React.FC = () => {
       </a>
 
       {/* Header */}
-      <header className="mb-6 flex flex-col items-start justify-between gap-4 border-b border-slate-800 pb-4 pr-14 sm:mb-8 sm:gap-6 sm:pr-20 sm:flex-row sm:items-center">
-        <div>
+      <header className="mb-6 flex flex-col gap-4 border-b border-slate-800 pb-4 pr-14 sm:mb-8 sm:gap-6 sm:pr-20 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
             Portugal 2100
           </h1>
@@ -98,7 +101,7 @@ const App: React.FC = () => {
             Demographic Impact Simulator
           </p>
         </div>
-        <div className="flex w-full items-end justify-between gap-3 sm:mt-0 sm:w-auto sm:items-center sm:justify-start sm:gap-4">
+        <div className="flex w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2.5 shadow-lg backdrop-blur-sm sm:px-4 sm:py-3 lg:w-auto lg:min-w-[240px]">
           <button 
             onClick={togglePlay}
             className={`rounded-full p-2.5 shadow-lg transition-all sm:p-3 ${isPlaying ? 'bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/50' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}
@@ -117,15 +120,20 @@ const App: React.FC = () => {
       <main className="grid flex-grow grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-12">
         
         {/* Left Column: Controls & Key Metrics (3 cols) */}
-        <div className="order-3 space-y-4 sm:space-y-6 lg:order-1 lg:col-span-3">
+        <div className="order-1 space-y-4 sm:space-y-6 lg:order-1 lg:col-span-3">
           
           {/* Controls Card */}
           <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm sm:p-5">
-            <div className="flex items-center gap-2 mb-4 text-slate-200 font-semibold border-b border-slate-800 pb-2">
-              <Settings size={18} className="text-emerald-400" /> Simulation Parameters
+            <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
+              <div className="flex items-center gap-2 font-semibold text-slate-200">
+                <Settings size={18} className="text-emerald-400" /> Simulation Parameters
+              </div>
+              <span className={`rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] ${isCustomScenario ? 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/40' : 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'}`}>
+                {isCustomScenario ? 'Custom' : 'Preset'}
+              </span>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Scenario Selection */}
               <div>
                 <label className="text-xs text-slate-400 mb-2 block">Projection Scenario</label>
@@ -154,189 +162,213 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Year Slider */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Timeline</span>
-                  <span>{currentYear}</span>
-                </label>
-                <input
-                  type="range"
-                  min={START_YEAR}
-                  max={END_YEAR}
-                  value={currentYear}
-                  onChange={(e) => {
-                    setIsPlaying(false);
-                    setCurrentYear(Number(e.target.value));
-                  }}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                {/* Year Slider */}
+                <div>
+                  <label className="mb-1 flex justify-between text-xs text-slate-400">
+                    <span>Timeline</span>
+                    <span>{currentYear}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={START_YEAR}
+                    max={END_YEAR}
+                    value={currentYear}
+                    onChange={(e) => {
+                      setIsPlaying(false);
+                      setCurrentYear(Number(e.target.value));
+                    }}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-emerald-500"
+                  />
+                </div>
+
+                {/* Retirement Age */}
+                <div>
+                  <label className="mb-1 flex justify-between text-xs text-slate-400">
+                    <span>Retirement Age</span>
+                    <span className="font-mono font-bold text-amber-400">{params.retirementAge}y</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={60}
+                    max={75}
+                    value={params.retirementAge}
+                    onChange={(e) => handleParamChange('retirementAge', Number(e.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-amber-500"
+                  />
+                </div>
               </div>
 
-              {/* Retirement Age */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Retirement Age</span>
-                  <span className="text-amber-400 font-mono font-bold">{params.retirementAge}y</span>
-                </label>
-                <input
-                  type="range"
-                  min={60}
-                  max={75}
-                  value={params.retirementAge}
-                  onChange={(e) => handleParamChange('retirementAge', Number(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                />
+              <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-3 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedControls(prev => !prev)}
+                  className="flex w-full items-center justify-between text-left"
+                  aria-expanded={showAdvancedControls}
+                  aria-controls="advanced-controls"
+                >
+                  <div>
+                    <p className="text-xs font-medium text-slate-200">Advanced demographic inputs</p>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Fertility, migration, mortality, workforce entry and unemployment.
+                    </p>
+                  </div>
+                  <span className="text-xs font-medium text-emerald-400">
+                    {showAdvancedControls ? 'Hide' : 'Show'}
+                  </span>
+                </button>
               </div>
 
-              {/* Fertility Rate - Locked by scenario */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span className="flex items-center">
-                    Fertility Rate (TFR)
-                    <InfoTooltip content="Average children per woman. 2.1 is replacement level needed to maintain population without migration." />
-                  </span>
-                  <span className="text-pink-400 font-mono font-bold">{params.fertilityRate.toFixed(2)}</span>
-                </label>
-                <input
-                  type="range"
-                  min={0.8}
-                  max={2.5}
-                  step={0.01}
-                  value={params.fertilityRate}
-                  disabled={selectedScenario !== 'custom'}
-                  onChange={(e) => handleParamChange('fertilityRate', Number(e.target.value))}
-                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-pink-500 ${
-                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
-                  }`}
-                />
-                <p className="text-[10px] text-slate-500 mt-1 italic">
-                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
-                  Replacement is 2.1
-                </p>
-              </div>
+              <div id="advanced-controls" className={`${showAdvancedControls ? 'block' : 'hidden'} space-y-5 md:block`}>
+                {/* Fertility Rate - Locked by scenario */}
+                <div>
+                  <label className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span className="flex items-center">
+                      Fertility Rate (TFR)
+                      <InfoTooltip content="Average children per woman. 2.1 is replacement level needed to maintain population without migration." />
+                    </span>
+                    <span className="text-pink-400 font-mono font-bold">{params.fertilityRate.toFixed(2)}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0.8}
+                    max={2.5}
+                    step={0.01}
+                    value={params.fertilityRate}
+                    disabled={!isCustomScenario}
+                    onChange={(e) => handleParamChange('fertilityRate', Number(e.target.value))}
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-pink-500 ${
+                      !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                    }`}
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                    {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
+                    Replacement is 2.1
+                  </p>
+                </div>
 
-              {/* Net Migration - Locked by scenario */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span className="flex items-center">
-                    Annual Net Migration
-                    <InfoTooltip content="Annual immigrants minus emigrants. Positive values add to population, typically younger working-age adults." />
-                  </span>
-                  <span className="text-cyan-400 font-mono font-bold">{params.netMigration >= 0 ? '+' : ''}{params.netMigration.toLocaleString()}</span>
-                </label>
-                <input
-                  type="range"
-                  min={-10000}
-                  max={150000}
-                  step={1000}
-                  value={params.netMigration}
-                  disabled={selectedScenario !== 'custom'}
-                  onChange={(e) => handleParamChange('netMigration', Number(e.target.value))}
-                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyan-500 ${
-                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
-                  }`}
-                />
-                {selectedScenario !== 'custom' && (
-                  <p className="text-[10px] text-amber-500/70 mt-1 italic">Scenario locked</p>
-                )}
-              </div>
+                {/* Net Migration - Locked by scenario */}
+                <div>
+                  <label className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span className="flex items-center">
+                      Annual Net Migration
+                      <InfoTooltip content="Annual immigrants minus emigrants. Positive values add to population, typically younger working-age adults." />
+                    </span>
+                    <span className="text-cyan-400 font-mono font-bold">{params.netMigration >= 0 ? '+' : ''}{params.netMigration.toLocaleString()}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={-10000}
+                    max={150000}
+                    step={1000}
+                    value={params.netMigration}
+                    disabled={!isCustomScenario}
+                    onChange={(e) => handleParamChange('netMigration', Number(e.target.value))}
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyan-500 ${
+                      !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                    }`}
+                  />
+                  {!isCustomScenario && (
+                    <p className="text-[10px] text-amber-500/70 mt-1 italic">Scenario locked</p>
+                  )}
+                </div>
 
-              {/* Mortality Improvement - Locked by scenario */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span className="flex items-center">
-                    Mortality Improvement
-                    <InfoTooltip content="Annual % reduction in death rates. Higher values mean people live longer, increasing elderly population." />
-                  </span>
-                  <span className="text-violet-400 font-mono font-bold">
-                    {(params.mortalityImprovement.male * 100).toFixed(1)}%
-                  </span>
-                </label>
-                <input
-                  type="range"
-                  min={0}
-                  max={2.0}
-                  step={0.1}
-                  value={params.mortalityImprovement.male * 100}
-                  disabled={selectedScenario !== 'custom'}
-                  onChange={(e) => {
-                    const maleRate = Number(e.target.value) / 100;
-                    const femaleRate = maleRate * 0.8;
-                    handleParamChange('mortalityImprovement', { male: maleRate, female: femaleRate });
-                  }}
-                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-violet-500 ${
-                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
-                  }`}
-                />
-                <p className="text-[10px] text-slate-500 mt-1 italic">
-                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
-                  Annual mortality rate reduction
-                </p>
-              </div>
+                {/* Mortality Improvement - Locked by scenario */}
+                <div>
+                  <label className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span className="flex items-center">
+                      Mortality Improvement
+                      <InfoTooltip content="Annual % reduction in death rates. Higher values mean people live longer, increasing elderly population." />
+                    </span>
+                    <span className="text-violet-400 font-mono font-bold">
+                      {(params.mortalityImprovement.male * 100).toFixed(1)}%
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2.0}
+                    step={0.1}
+                    value={params.mortalityImprovement.male * 100}
+                    disabled={!isCustomScenario}
+                    onChange={(e) => {
+                      const maleRate = Number(e.target.value) / 100;
+                      const femaleRate = maleRate * 0.8;
+                      handleParamChange('mortalityImprovement', { male: maleRate, female: femaleRate });
+                    }}
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-violet-500 ${
+                      !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                    }`}
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                    {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
+                    Annual mortality rate reduction
+                  </p>
+                </div>
 
-              {/* Workforce Entry Age Shift - Locked by scenario */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span className="flex items-center">
-                    Workforce Entry Shift
-                    <InfoTooltip content="Age shift for entering the workforce. Positive values = later entry (more education), reducing working years." />
-                  </span>
-                  <span className="text-orange-400 font-mono font-bold">
-                    {params.workforceEntryAgeShift >= 0 ? '+' : ''}{params.workforceEntryAgeShift}y
-                  </span>
-                </label>
-                <input
-                  type="range"
-                  min={-3}
-                  max={5}
-                  step={1}
-                  value={params.workforceEntryAgeShift}
-                  disabled={selectedScenario !== 'custom'}
-                  onChange={(e) => handleParamChange('workforceEntryAgeShift', Number(e.target.value))}
-                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-orange-500 ${
-                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
-                  }`}
-                />
-                <p className="text-[10px] text-slate-500 mt-1 italic">
-                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
-                  + = later entry (more education)
-                </p>
-              </div>
+                {/* Workforce Entry Age Shift - Locked by scenario */}
+                <div>
+                  <label className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span className="flex items-center">
+                      Workforce Entry Shift
+                      <InfoTooltip content="Age shift for entering the workforce. Positive values = later entry (more education), reducing working years." />
+                    </span>
+                    <span className="text-orange-400 font-mono font-bold">
+                      {params.workforceEntryAgeShift >= 0 ? '+' : ''}{params.workforceEntryAgeShift}y
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min={-3}
+                    max={5}
+                    step={1}
+                    value={params.workforceEntryAgeShift}
+                    disabled={!isCustomScenario}
+                    onChange={(e) => handleParamChange('workforceEntryAgeShift', Number(e.target.value))}
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-orange-500 ${
+                      !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                    }`}
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                    {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
+                    + = later entry (more education)
+                  </p>
+                </div>
 
-              {/* Unemployment Adjustment - Locked by scenario */}
-              <div>
-                <label className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span className="flex items-center">
-                    Unemployment Adjust
-                    <InfoTooltip content="Change from baseline unemployment rate. Positive = higher unemployment, fewer workers contributing to social security." />
-                  </span>
-                  <span className={`font-mono font-bold ${params.unemploymentAdjustment > 0 ? 'text-rose-400' : params.unemploymentAdjustment < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
-                    {params.unemploymentAdjustment >= 0 ? '+' : ''}{(params.unemploymentAdjustment * 100).toFixed(0)}%
-                  </span>
-                </label>
-                <input
-                  type="range"
-                  min={-10}
-                  max={15}
-                  step={1}
-                  value={params.unemploymentAdjustment * 100}
-                  disabled={selectedScenario !== 'custom'}
-                  onChange={(e) => handleParamChange('unemploymentAdjustment', Number(e.target.value) / 100)}
-                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-rose-500 ${
-                    selectedScenario !== 'custom' ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
-                  }`}
-                />
-                <p className="text-[10px] text-slate-500 mt-1 italic">
-                  {selectedScenario !== 'custom' && <span className="text-amber-500/70">Scenario locked • </span>}
-                  + = higher unemployment
-                </p>
+                {/* Unemployment Adjustment - Locked by scenario */}
+                <div>
+                  <label className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span className="flex items-center">
+                      Unemployment Adjust
+                      <InfoTooltip content="Change from baseline unemployment rate. Positive = higher unemployment, fewer workers contributing to social security." />
+                    </span>
+                    <span className={`font-mono font-bold ${params.unemploymentAdjustment > 0 ? 'text-rose-400' : params.unemploymentAdjustment < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {params.unemploymentAdjustment >= 0 ? '+' : ''}{(params.unemploymentAdjustment * 100).toFixed(0)}%
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min={-10}
+                    max={15}
+                    step={1}
+                    value={params.unemploymentAdjustment * 100}
+                    disabled={!isCustomScenario}
+                    onChange={(e) => handleParamChange('unemploymentAdjustment', Number(e.target.value) / 100)}
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-rose-500 ${
+                      !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
+                    }`}
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                    {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
+                    + = higher unemployment
+                  </p>
+                </div>
               </div>
             </div>
 
             <button 
               onClick={reset}
-              className="mt-6 w-full flex items-center justify-center gap-2 text-xs py-2 border border-slate-700 rounded hover:bg-slate-800 text-slate-400 transition-colors"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded border border-slate-700 py-2 text-xs text-slate-400 transition-colors hover:bg-slate-800"
             >
               <RefreshCw size={12} /> Reset to 2024 Defaults
             </button>
@@ -345,16 +377,16 @@ const App: React.FC = () => {
         </div>
 
         {/* Center Column: Pyramid + Charts (6 cols) */}
-        <div className="order-1 flex min-w-0 flex-col gap-4 lg:order-2 lg:col-span-6">
-          <div className="relative flex h-[340px] min-w-0 flex-col overflow-visible rounded-xl border border-slate-800 bg-slate-900/40 p-3 shadow-lg backdrop-blur-sm sm:h-[400px] sm:p-4 md:h-[420px]">
+        <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-2 lg:col-span-6">
+          <div className="relative flex h-[320px] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 p-3 shadow-lg backdrop-blur-sm sm:h-[400px] sm:overflow-visible sm:p-4 md:h-[420px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="h-[240px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[250px] sm:p-4 xl:h-[200px]">
+            <div className="h-[220px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[250px] sm:p-4 xl:h-[200px]">
                <TrendChart fullHistory={simulationData} currentYear={currentYear} />
             </div>
-            <div className="h-[250px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[260px] sm:p-4 xl:h-[200px]">
+            <div className="h-[230px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[260px] sm:p-4 xl:h-[200px]">
                <EconomicTrendChart
                  fullHistory={simulationData}
                  currentYear={currentYear}
@@ -367,44 +399,44 @@ const App: React.FC = () => {
         </div>
 
         {/* Right Column: Metrics & Economic Indicators (3 cols) */}
-        <div className="order-2 space-y-4 lg:order-3 lg:col-span-3">
+        <div className="order-3 space-y-4 lg:order-3 lg:col-span-3">
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
-             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-md sm:p-3">
+          <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
+             <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
+                  <p className="flex items-center text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">
                     Dependency Ratio
                     <InfoTooltip content="Retirees per 100 working-age adults. Above 55% means serious strain on the social security system." />
                   </p>
-                  <p className={`text-xl font-bold ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
+                  <p className={`mt-1 text-lg font-bold lg:text-xl ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
                     {currentData.oldAgeDependencyRatio.toFixed(1)}%
                   </p>
                 </div>
-                <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+                <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
                   <TrendingUp size={16} />
                 </div>
              </div>
 
-             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-md sm:p-3">
+             <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-tight">Total Population</p>
-                  <p className="text-xl font-bold text-slate-200">
+                  <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Total Population</p>
+                  <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
                     {(currentData.totalPopulation / 1000000).toFixed(2)}M
                   </p>
                 </div>
-                <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+                <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
                   <Users size={16} />
                 </div>
              </div>
 
-             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-md sm:p-3">
+             <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-tight">Median Age</p>
-                  <p className="text-xl font-bold text-slate-200">
+                  <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Median Age</p>
+                  <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
                     {currentData.medianAge.toFixed(1)}y
                   </p>
                 </div>
-                <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+                <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
                   <span className="font-bold text-[10px] uppercase">Age</span>
                 </div>
              </div>

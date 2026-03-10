@@ -21,9 +21,9 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
   const isWarning = metrics.sustainabilityIndex < 60;
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
       {/* Actual Workforce */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-md">
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Actual Workforce
           <InfoTooltip content="Employed workers contributing to social security. Excludes unemployed and those outside working age." />
@@ -37,7 +37,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       </div>
 
       {/* SS Balance */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-md">
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           SS Balance
           <InfoTooltip content="Social Security revenue minus pension payments. Negative values indicate a deficit that must be covered by other means." />
@@ -51,7 +51,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       </div>
 
       {/* Healthcare Cost */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-md">
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Healthcare Cost
           <InfoTooltip content="Total healthcare spending based on population age structure. Public share (62%) counts toward fiscal burden. Elderly care costs 6x more than youth." />
@@ -65,7 +65,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       </div>
 
       {/* Total Burden per Worker */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-md">
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Burden per Worker
           <InfoTooltip content="Annual cost each worker must cover for SS deficit and public healthcare (62% of total). Higher values reduce disposable income and competitiveness." />
@@ -81,7 +81,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       </div>
 
       {/* Sustainability Index */}
-      <div className={`border rounded-xl p-3 shadow-md ${
+      <div className={`sm:col-span-2 lg:col-span-1 border rounded-xl p-3 shadow-md ${
         isCritical
           ? 'bg-rose-900/20 border-rose-800'
           : isWarning
