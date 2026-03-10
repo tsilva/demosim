@@ -11,20 +11,19 @@ import AboutPanel from './components/AboutPanel';
 
 const START_YEAR = 2024;
 const END_YEAR = 2100;
+const DEFAULT_SCENARIO: ScenarioType = 'medium';
+
+const cloneParams = (source: SimulationParams): SimulationParams => ({
+  ...source,
+  mortalityImprovement: { ...source.mortalityImprovement },
+});
 
 const App: React.FC = () => {
   // --- State ---
   const [currentYear, setCurrentYear] = useState(START_YEAR);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('medium');
-  const [params, setParams] = useState<SimulationParams>({
-    retirementAge: 66, // Portugal's current baseline is 66y 5m (2025), using 66 for slider
-    fertilityRate: 1.41, // Eurostat 2024: TFR 1.41 children per woman
-    netMigration: 143641, // Eurostat 2024: corrected net migration
-    mortalityImprovement: { male: 0.010, female: 0.008 }, // Default medium scenario
-    workforceEntryAgeShift: 0, // No shift from current patterns
-    unemploymentAdjustment: 0, // Baseline unemployment levels
-  });
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioType>(DEFAULT_SCENARIO);
+  const [params, setParams] = useState<SimulationParams>(() => cloneParams(SCENARIO_PRESETS[DEFAULT_SCENARIO].params));
   
   // Cache simulation results so scrubbing is instant
   const simulationData = useMemo(() => {
@@ -42,30 +41,15 @@ const App: React.FC = () => {
   const reset = () => {
     setIsPlaying(false);
     setCurrentYear(START_YEAR);
-    setSelectedScenario('medium');
-    setParams({
-      retirementAge: 66,
-      fertilityRate: 1.41,
-      netMigration: 143641,
-      mortalityImprovement: { male: 0.010, female: 0.008 },
-      workforceEntryAgeShift: 0,
-      unemploymentAdjustment: 0,
-    });
+    setSelectedScenario(DEFAULT_SCENARIO);
+    setParams(cloneParams(SCENARIO_PRESETS[DEFAULT_SCENARIO].params));
   };
 
   // Handle scenario selection
   const handleScenarioChange = (scenario: ScenarioType) => {
     setSelectedScenario(scenario);
     if (scenario !== 'custom') {
-      const preset = SCENARIO_PRESETS[scenario];
-      setParams(prev => ({
-        ...prev,
-        fertilityRate: preset.params.fertilityRate,
-        netMigration: preset.params.netMigration,
-        mortalityImprovement: preset.params.mortalityImprovement,
-        workforceEntryAgeShift: preset.params.workforceEntryAgeShift,
-        unemploymentAdjustment: preset.params.unemploymentAdjustment,
-      }));
+      setParams(cloneParams(SCENARIO_PRESETS[scenario].params));
     }
   };
 
@@ -189,7 +173,7 @@ const App: React.FC = () => {
                 />
               </div>
 
-              {/* Retirement Age - Always editable */}
+              {/* Retirement Age */}
               <div>
                 <label className="flex justify-between text-xs text-slate-400 mb-1">
                   <span>Retirement Age</span>
@@ -200,7 +184,7 @@ const App: React.FC = () => {
                   min={60}
                   max={75}
                   value={params.retirementAge}
-                  onChange={(e) => setParams({...params, retirementAge: Number(e.target.value)})}
+                  onChange={(e) => handleParamChange('retirementAge', Number(e.target.value))}
                   className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
                 />
               </div>

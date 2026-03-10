@@ -61,7 +61,7 @@ export interface SimulationParams {
 export interface ScenarioDefinition {
   name: string;
   description: string;
-  params: Omit<SimulationParams, 'retirementAge'>; // Retirement age stays user-controlled
+  params: SimulationParams;
 }
 
 // Scenario presets based on Eurostat EUROPOP2023, UN WPP 2024, and INE Portugal methodologies
@@ -70,6 +70,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     name: 'Low',
     description: 'Economic stagnation: TFR 1.20, migration 50K/year, +3% unemployment',
     params: {
+      retirementAge: 66,
       fertilityRate: 1.20,
       netMigration: 50000,
       mortalityImprovement: { male: 0.005, female: 0.004 },
@@ -81,6 +82,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     name: 'Medium',
     description: 'Current trends continue: TFR 1.41, corrected net migration 144K/year (Eurostat 2024 baseline)',
     params: {
+      retirementAge: 66,
       fertilityRate: 1.41,
       netMigration: 143641,
       mortalityImprovement: { male: 0.010, female: 0.008 },
@@ -92,6 +94,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     name: 'High',
     description: 'Optimistic growth: TFR 1.77, migration 150K/year, -2% unemployment',
     params: {
+      retirementAge: 66,
       fertilityRate: 1.77,
       netMigration: 150000,
       mortalityImprovement: { male: 0.015, female: 0.012 },
@@ -100,4 +103,3 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     }
   }
 };
-
