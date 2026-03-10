@@ -106,14 +106,14 @@ const App: React.FC = () => {
         target="_blank"
         rel="noreferrer"
         aria-label="View source on GitHub"
-        className="absolute right-4 top-4 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white md:left-8 md:right-auto md:top-8"
+        className="absolute right-4 top-4 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white md:right-8 md:top-8"
       >
         <Github size={20} />
       </a>
 
       {/* Header */}
-      <header className="mb-8 flex flex-col items-start justify-between gap-6 border-b border-slate-800 pb-4 sm:flex-row sm:items-center">
-        <div className="pr-12 sm:pr-0">
+      <header className="mb-8 flex flex-col items-start justify-between gap-6 border-b border-slate-800 pb-4 pr-16 sm:flex-row sm:items-center sm:pr-20">
+        <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
             Portugal 2100
           </h1>
@@ -122,10 +122,6 @@ const App: React.FC = () => {
           </p>
         </div>
         <div className="flex w-full items-center justify-between gap-4 sm:mt-0 sm:w-auto sm:justify-start">
-          <div className="text-right">
-             <div className="text-xs text-slate-500 uppercase tracking-wider">Simulation Year</div>
-             <div className="text-4xl font-mono font-bold text-white">{currentYear}</div>
-          </div>
           <button 
             onClick={togglePlay}
             className={`p-3 rounded-full shadow-lg transition-all ${isPlaying ? 'bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/50' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}
@@ -133,6 +129,10 @@ const App: React.FC = () => {
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
           </button>
+          <div className="text-right">
+             <div className="text-xs text-slate-500 uppercase tracking-wider">Simulation Year</div>
+             <div className="text-4xl font-mono font-bold text-white">{currentYear}</div>
+          </div>
         </div>
       </header>
 
