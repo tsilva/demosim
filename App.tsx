@@ -106,7 +106,7 @@ const App: React.FC = () => {
         target="_blank"
         rel="noreferrer"
         aria-label="View source on GitHub"
-        className="absolute left-4 top-4 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white md:left-8 md:top-8"
+        className="absolute right-4 top-4 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white md:left-8 md:right-auto md:top-8"
       >
         <Github size={20} />
       </a>
