@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Play, Pause, RefreshCw, TrendingUp, Users } from 'lucide-react';
+import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
 import { runSimulation } from './utils/simulation';
 import PyramidChart from './components/PyramidChart';
@@ -97,9 +97,19 @@ const App: React.FC = () => {
   }, [isPlaying]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8 flex flex-col">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8 flex flex-col">
       {/* Welcome Modal for first-time visitors */}
       {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+
+      <a
+        href="https://github.com/tsilva/demosim"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="View source on GitHub"
+        className="absolute left-4 top-4 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white md:left-8 md:top-8"
+      >
+        <Github size={20} />
+      </a>
 
       {/* Header */}
       <header className="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-4">

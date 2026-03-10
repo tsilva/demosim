@@ -1,41 +1,110 @@
 // Calibrated to INE Portugal Life Tables 2022-2024
 // Life expectancy: 78.73 (M), 83.96 (F), 81.49 (total)
-// Reference: INE - Tábuas de Mortalidade 2022-2024
+// Reference: INE - Tabuas de Mortalidade 2022-2024
+//
+// The childhood and young-adult rates below are kept from the original
+// calibration. Ages 41+ are rebuilt with a Gompertz tail anchored at age 40 so
+// the implied life expectancy at birth matches the documented INE baseline.
+
+const MAX_LIFE_TABLE_AGE = 100;
+const OPEN_AGE_TAIL_LIMIT = 160;
+const ADULT_TAIL_START_AGE = 40;
+const MAX_OPEN_AGE_QX = 0.98;
+const LIFE_EXPECTANCY_TOLERANCE = 0.01;
+
+const BASE_QX_PREFIX = {
+  male: [
+    0.00280, 0.00025, 0.00018, 0.00014, 0.00012, 0.00010, 0.00009, 0.00008, 0.00008, 0.00008,
+    0.00008, 0.00009, 0.00010, 0.00012, 0.00015, 0.00020, 0.00028, 0.00038, 0.00048, 0.00055,
+    0.00060, 0.00062, 0.00063, 0.00062, 0.00060, 0.00058, 0.00057, 0.00057, 0.00058, 0.00060,
+    0.00063, 0.00067, 0.00072, 0.00078, 0.00085, 0.00093, 0.00102, 0.00112, 0.00124, 0.00138,
+    0.00154,
+  ],
+  female: [
+    0.00220, 0.00020, 0.00014, 0.00011, 0.00009, 0.00008, 0.00007, 0.00006, 0.00006, 0.00006,
+    0.00006, 0.00007, 0.00008, 0.00009, 0.00010, 0.00012, 0.00014, 0.00016, 0.00018, 0.00020,
+    0.00021, 0.00022, 0.00022, 0.00022, 0.00022, 0.00022, 0.00023, 0.00024, 0.00026, 0.00028,
+    0.00031, 0.00034, 0.00038, 0.00043, 0.00048, 0.00054, 0.00061, 0.00069, 0.00078, 0.00088,
+    0.00100,
+  ]
+};
+
+const LIFE_EXPECTANCY = {
+  male: 78.73,
+  female: 83.96,
+  total: 81.49
+} as const;
+
+const calculateLifeExpectancy = (qxArray: number[]): number => {
+  let survivors = 100000;
+  let personYears = 0;
+
+  for (let age = 0; age < OPEN_AGE_TAIL_LIMIT; age++) {
+    const qx = qxArray[Math.min(age, MAX_LIFE_TABLE_AGE)];
+    personYears += survivors;
+    survivors *= (1 - qx);
+
+    if (survivors < 1e-6) {
+      break;
+    }
+  }
+
+  return personYears / 100000;
+};
+
+const buildCalibratedQxSeries = (
+  baseQxPrefix: number[],
+  targetLifeExpectancy: number,
+  sex: 'male' | 'female'
+): number[] => {
+  const anchorQx = baseQxPrefix[ADULT_TAIL_START_AGE];
+
+  const buildSeries = (growthRate: number): number[] => {
+    const qxSeries = baseQxPrefix.slice();
+
+    for (let age = ADULT_TAIL_START_AGE + 1; age <= MAX_LIFE_TABLE_AGE; age++) {
+      qxSeries[age] = Math.min(
+        MAX_OPEN_AGE_QX,
+        anchorQx * Math.exp(growthRate * (age - ADULT_TAIL_START_AGE))
+      );
+    }
+
+    return qxSeries;
+  };
+
+  let lowGrowth = 0.01;
+  let highGrowth = 0.2;
+
+  for (let step = 0; step < 100; step++) {
+    const midGrowth = (lowGrowth + highGrowth) / 2;
+    const impliedLifeExpectancy = calculateLifeExpectancy(buildSeries(midGrowth));
+
+    if (impliedLifeExpectancy > targetLifeExpectancy) {
+      lowGrowth = midGrowth;
+    } else {
+      highGrowth = midGrowth;
+    }
+  }
+
+  const calibrated = buildSeries((lowGrowth + highGrowth) / 2);
+  const impliedLifeExpectancy = calculateLifeExpectancy(calibrated);
+
+  if (Math.abs(impliedLifeExpectancy - targetLifeExpectancy) > LIFE_EXPECTANCY_TOLERANCE) {
+    throw new Error(
+      `Failed to calibrate ${sex} mortality table: expected ${targetLifeExpectancy}, got ${impliedLifeExpectancy}.`
+    );
+  }
+
+  return calibrated;
+};
 
 export const lifeTables = {
-  lifeExpectancy: {
-    male: 78.73,
-    female: 83.96,
-    total: 81.49
-  },
+  lifeExpectancy: LIFE_EXPECTANCY,
   infantMortalityRate: 2.2,
   // qx = probability of dying within one year at age x
   qx: {
-    male: [
-      0.00280, 0.00025, 0.00018, 0.00014, 0.00012, 0.00010, 0.00009, 0.00008, 0.00008, 0.00008,
-      0.00008, 0.00009, 0.00010, 0.00012, 0.00015, 0.00020, 0.00028, 0.00038, 0.00048, 0.00055,
-      0.00060, 0.00062, 0.00063, 0.00062, 0.00060, 0.00058, 0.00057, 0.00057, 0.00058, 0.00060,
-      0.00063, 0.00067, 0.00072, 0.00078, 0.00085, 0.00093, 0.00102, 0.00112, 0.00124, 0.00138,
-      0.00154, 0.00172, 0.00192, 0.00215, 0.00241, 0.00270, 0.00303, 0.00340, 0.00382, 0.00429,
-      0.00482, 0.00542, 0.00609, 0.00684, 0.00769, 0.00864, 0.00971, 0.01091, 0.01226, 0.01378,
-      0.01549, 0.01741, 0.01957, 0.02199, 0.02472, 0.02779, 0.03124, 0.03512, 0.03949, 0.04440,
-      0.04992, 0.05613, 0.06311, 0.07095, 0.07976, 0.08966, 0.10078, 0.11328, 0.12733, 0.14312,
-      0.16087, 0.18081, 0.20320, 0.22833, 0.25652, 0.28812, 0.32352, 0.36315, 0.40747, 0.45698,
-      0.51222, 0.57377, 0.64225, 0.71832, 0.80264, 0.89589, 1.00000, 1.00000, 1.00000, 1.00000, 1.00000
-    ],
-    female: [
-      0.00220, 0.00020, 0.00014, 0.00011, 0.00009, 0.00008, 0.00007, 0.00006, 0.00006, 0.00006,
-      0.00006, 0.00007, 0.00008, 0.00009, 0.00010, 0.00012, 0.00014, 0.00016, 0.00018, 0.00020,
-      0.00021, 0.00022, 0.00022, 0.00022, 0.00022, 0.00022, 0.00023, 0.00024, 0.00026, 0.00028,
-      0.00031, 0.00034, 0.00038, 0.00043, 0.00048, 0.00054, 0.00061, 0.00069, 0.00078, 0.00088,
-      0.00100, 0.00113, 0.00128, 0.00145, 0.00164, 0.00186, 0.00211, 0.00239, 0.00271, 0.00307,
-      0.00348, 0.00394, 0.00447, 0.00506, 0.00573, 0.00649, 0.00735, 0.00833, 0.00943, 0.01068,
-      0.01210, 0.01371, 0.01553, 0.01760, 0.01994, 0.02260, 0.02561, 0.02902, 0.03289, 0.03727,
-      0.04225, 0.04788, 0.05427, 0.06151, 0.06973, 0.07905, 0.08962, 0.10160, 0.11519, 0.13059,
-      0.14805, 0.16783, 0.19025, 0.21564, 0.24438, 0.27690, 0.31369, 0.35528, 0.40228, 0.45537,
-      0.51530, 0.58290, 0.65907, 0.74479, 0.84111, 0.94917, 1.00000, 1.00000, 1.00000, 1.00000, 1.00000
-    ]
+    male: buildCalibratedQxSeries(BASE_QX_PREFIX.male, LIFE_EXPECTANCY.male, 'male'),
+    female: buildCalibratedQxSeries(BASE_QX_PREFIX.female, LIFE_EXPECTANCY.female, 'female'),
   }
-  // Note: mortalityImprovementRate is now configurable via SimulationParams and SCENARIO_PRESETS in types.ts
-  // Default values: male 1.0%, female 0.8% (based on 10-year trends)
+  // Note: mortalityImprovementRate is configurable via SimulationParams and SCENARIO_PRESETS in types.ts.
 };

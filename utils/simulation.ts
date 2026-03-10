@@ -9,7 +9,7 @@ import economicParams from '../data/economicParams.json';
 
 /**
  * Generates initial population data for Portugal (2024)
- * Uses real INE data calibrated to 10,749,635 total population
+ * Uses the repository's calibrated 2024 age/sex population distribution
  */
 export const generateInitialData = (): AgeGroup[] => {
   return populationData.data.map(row => ({
@@ -42,17 +42,23 @@ const getMortalityRate = (
     ? mortalityImprovement.male
     : mortalityImprovement.female;
 
-  // Get base qx, capped at age 100
+  // Get base qx, capped at age 100+
   const baseQx = qxArray[Math.min(age, 100)];
 
   // Apply mortality improvement over time (mortality decreases as medicine improves)
-  // This models increasing life expectancy over the projection period
-  // Note: No improvement applied at age 100+ (qx must remain at 1.0 - certain death)
-  const improvedQx = age >= 100
-    ? baseQx
-    : baseQx * Math.pow(1 - improvementRate, yearsFromBase);
+  // This models increasing life expectancy over the projection period.
+  // Keep qx below 1.0 so the open-ended age 100+ group can persist realistically.
+  const improvedQx = baseQx * Math.pow(1 - improvementRate, yearsFromBase);
 
-  return Math.min(improvedQx, 1.0);
+  return Math.max(0, Math.min(improvedQx, 0.999999));
+};
+
+/**
+ * Approximate mortality for people exposed to only half of the year
+ * (newborns and immigrants arrive uniformly through the year on average)
+ */
+const getHalfYearMortalityRate = (annualQx: number): number => {
+  return 1 - Math.sqrt(1 - annualQx);
 };
 
 /**
@@ -83,7 +89,9 @@ const getMigrationWeight = (age: number, sex: 'male' | 'female'): number => {
 
   // Find the age group this age belongs to
   for (const group of profile) {
-    const [minAge, maxAge] = parseAgeGroup(group.ageGroup);
+    const [minAge, parsedMaxAge] = parseAgeGroup(group.ageGroup);
+    // The 100+ cohort is an aggregate bucket with no direct migration allocation.
+    const maxAge = group.ageGroup.endsWith('+') ? 99 : parsedMaxAge;
     if (age >= minAge && age <= maxAge) {
       // Distribute normalized weight evenly across ages in the group
       const groupSize = maxAge - minAge + 1;
@@ -410,13 +418,25 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     const sexRatio = fertilityData.sexRatioAtBirth.ratio;
     const maleBirths = Math.floor(births * (sexRatio / (1 + sexRatio)));
     const femaleBirths = births - maleBirths;
+    const newbornMaleDeaths = Math.round(
+      maleBirths * getHalfYearMortalityRate(
+        getMortalityRate(0, 'male', yearsFromBase, params.mortalityImprovement)
+      )
+    );
+    const newbornFemaleDeaths = Math.round(
+      femaleBirths * getHalfYearMortalityRate(
+        getMortalityRate(0, 'female', yearsFromBase, params.mortalityImprovement)
+      )
+    );
+    const survivingMaleBirths = Math.max(0, maleBirths - newbornMaleDeaths);
+    const survivingFemaleBirths = Math.max(0, femaleBirths - newbornFemaleDeaths);
 
     // Age 0 cohort (newborns)
     nextPop.push({
       age: 0,
-      male: maleBirths,
-      female: femaleBirths,
-      total: births
+      male: survivingMaleBirths,
+      female: survivingFemaleBirths,
+      total: survivingMaleBirths + survivingFemaleBirths
     });
 
     // Pre-calculate total migration by sex for the year
@@ -432,7 +452,7 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     let age100Female = 0;
 
     // Track total deaths and migration for population balance validation
-    let totalDeaths = 0;
+    let totalDeaths = newbornMaleDeaths + newbornFemaleDeaths;
     let totalMigrationDistributed = 0;
 
     // Pre-calculate all migration amounts by age group before mortality
@@ -448,8 +468,8 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       const exactMaleMigration = totalMaleMigration * migrationWeightMale + maleMigrationCarry;
       const exactFemaleMigration = totalFemaleMigration * migrationWeightFemale + femaleMigrationCarry;
 
-      const migrationMale = Math.floor(exactMaleMigration);
-      const migrationFemale = Math.floor(exactFemaleMigration);
+      const migrationMale = Math.trunc(exactMaleMigration);
+      const migrationFemale = Math.trunc(exactFemaleMigration);
 
       maleMigrationCarry = exactMaleMigration - migrationMale;
       femaleMigrationCarry = exactFemaleMigration - migrationFemale;
@@ -474,51 +494,46 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     for (let i = 0; i < currentPop.length; i++) {
       const group = currentPop[i];
 
-      // Handle age 100+ separately: apply near-certain mortality, no migration, aggregate at 100
+      // Handle age 100+ separately: no direct migration, keep survivors in the open-ended bucket
       if (group.age >= 100) {
-        // Reset death carry-over for age 100+ group to prevent immortal cohort
-        let deathCarryMale100 = 0;
-        let deathCarryFemale100 = 0;
-
-        // Apply near-certain mortality (qx=1.0 for age 100 means 100% mortality)
         const qx100M = getMortalityRate(100, 'male', yearsFromBase, params.mortalityImprovement);
         const qx100F = getMortalityRate(100, 'female', yearsFromBase, params.mortalityImprovement);
-        const exactDeaths100M = group.male * qx100M + deathCarryMale100;
-        const exactDeaths100F = group.female * qx100F + deathCarryFemale100;
-        const deathsMale100 = Math.round(exactDeaths100M);
-        const deathsFemale100 = Math.round(exactDeaths100F);
+        const deathsMale100 = Math.round(group.male * qx100M);
+        const deathsFemale100 = Math.round(group.female * qx100F);
         totalDeaths += deathsMale100 + deathsFemale100;
         age100Male += Math.max(0, group.male - deathsMale100);
         age100Female += Math.max(0, group.female - deathsFemale100);
         continue;
       }
 
-      // Initialize death carry-over inside the loop for each cohort independently
-      let deathCarryMale = 0;
-      let deathCarryFemale = 0;
-
-      // Get migration for this age group (already calculated, added before mortality)
+      // Get migration for this age group
       const migrationMale = migrationByAge[i].male;
       const migrationFemale = migrationByAge[i].female;
 
-      // Calculate half-year mortality rate for migrants (they arrive mid-year on average)
-      // Formula: migrantDeaths = migrants * (1 - sqrt(1 - annualQx))
       const maleQx = getMortalityRate(group.age, 'male', yearsFromBase, params.mortalityImprovement);
       const femaleQx = getMortalityRate(group.age, 'female', yearsFromBase, params.mortalityImprovement);
-      const migrantDeathsMale = Math.round(migrationMale * (1 - Math.sqrt(1 - maleQx)));
-      const migrantDeathsFemale = Math.round(migrationFemale * (1 - Math.sqrt(1 - femaleQx)));
+      const halfYearMaleQx = getHalfYearMortalityRate(maleQx);
+      const halfYearFemaleQx = getHalfYearMortalityRate(femaleQx);
 
-      // Apply age-specific mortality rates with improvement over time
-      // Uses accumulator pattern: fractional deaths carry over to eliminate systematic bias
-      const populationAfterMigration = group.male + migrationMale - migrantDeathsMale;
-      const exactDeathsMale = populationAfterMigration * maleQx + deathCarryMale;
-      const exactDeathsFemale = (group.female + migrationFemale - migrantDeathsFemale) * femaleQx + deathCarryFemale;
-      const deathsMale = Math.round(exactDeathsMale);
-      const deathsFemale = Math.round(exactDeathsFemale);
-      totalDeaths += deathsMale + deathsFemale + migrantDeathsMale + migrantDeathsFemale;
+      // Emigrants are assumed to leave mid-year on average, so only half of their
+      // annual mortality exposure remains in the resident population.
+      const residentMaleExposure = Math.max(0, group.male + Math.min(0, migrationMale) / 2);
+      const residentFemaleExposure = Math.max(0, group.female + Math.min(0, migrationFemale) / 2);
+      const residentDeathsMale = Math.round(residentMaleExposure * maleQx);
+      const residentDeathsFemale = Math.round(residentFemaleExposure * femaleQx);
 
-      const survivingMale = Math.max(0, populationAfterMigration - deathsMale);
-      const survivingFemale = Math.max(0, group.female + migrationFemale - migrantDeathsFemale - deathsFemale);
+      // Immigrants arrive through the year and only face half-year mortality.
+      const migrantDeathsMale = migrationMale > 0
+        ? Math.round(migrationMale * halfYearMaleQx)
+        : 0;
+      const migrantDeathsFemale = migrationFemale > 0
+        ? Math.round(migrationFemale * halfYearFemaleQx)
+        : 0;
+
+      totalDeaths += residentDeathsMale + residentDeathsFemale + migrantDeathsMale + migrantDeathsFemale;
+
+      const survivingMale = Math.max(0, group.male - residentDeathsMale + migrationMale - migrantDeathsMale);
+      const survivingFemale = Math.max(0, group.female - residentDeathsFemale + migrationFemale - migrantDeathsFemale);
 
       // Age 99 survivors go to age 100 aggregate
       if (group.age === 99) {
