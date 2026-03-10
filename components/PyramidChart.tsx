@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { YearData } from '../types';
 import InfoTooltip from './InfoTooltip';
+import useChartContainerReady from './useChartContainerReady';
 
 interface Props {
   data: YearData;
@@ -19,6 +20,8 @@ interface Props {
 }
 
 const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
+  const { containerRef, isReady } = useChartContainerReady();
+
   // Find max population for symmetric axis
   const maxPop = Math.max(...data.population.map(g => g.male + g.female)) / 2;
 
@@ -72,80 +75,82 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
   };
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="flex h-full w-full min-w-0 flex-col">
       <h3 className="text-center text-slate-400 text-sm mb-2 font-semibold tracking-wider uppercase flex items-center justify-center">
         Population by Age ({data.year})
         <InfoTooltip content="Age pyramid showing population distribution. Cyan = youth (0-14), Green = working age, Rose = retired. A healthy pyramid has a wide base; inverted pyramids indicate aging populations." />
       </h3>
-      <div className="flex-grow min-h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            layout="vertical"
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            barCategoryGap={0}
-          >
-            <XAxis
-              type="number"
-              domain={[-maxPop * 1.1, maxPop * 1.1]}
-              hide
-            />
-            <YAxis
-              dataKey="age"
-              type="category"
-              interval={4}
-              tick={{ fill: '#94a3b8', fontSize: 10 }}
-              width={30}
-              reversed
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-            <ReferenceLine
-              x={0}
-              stroke="#475569"
-              strokeWidth={1}
-            />
-            <ReferenceLine
-              y={15}
-              stroke="#06b6d4"
-              strokeDasharray="3 3"
-              label={{ position: 'right', value: 'Working Age', fill: '#06b6d4', fontSize: 9 }}
-            />
-            <ReferenceLine
-              y={retirementAge}
-              stroke="#fbbf24"
-              strokeDasharray="3 3"
-              label={{ position: 'right', value: 'Retirement', fill: '#fbbf24', fontSize: 9 }}
-            />
-            {medianAge !== undefined && (
-              <ReferenceLine
-                y={Math.round(medianAge)}
-                stroke="#a78bfa"
-                strokeWidth={2}
-                label={{ position: 'left', value: `Median ${medianAge.toFixed(1)}`, fill: '#a78bfa', fontSize: 9 }}
+      <div ref={containerRef} className="min-h-[300px] min-w-0 flex-grow">
+        {isReady && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <ComposedChart
+              layout="vertical"
+              data={chartData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              barCategoryGap={0}
+            >
+              <XAxis
+                type="number"
+                domain={[-maxPop * 1.1, maxPop * 1.1]}
+                hide
               />
-            )}
-            <Bar dataKey="left" barSize={5}>
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`cell-l-${index}`}
-                  fill={getBarColor(entry.status)}
+              <YAxis
+                dataKey="age"
+                type="category"
+                interval={4}
+                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                width={30}
+                reversed
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+              <ReferenceLine
+                x={0}
+                stroke="#475569"
+                strokeWidth={1}
+              />
+              <ReferenceLine
+                y={15}
+                stroke="#06b6d4"
+                strokeDasharray="3 3"
+                label={{ position: 'right', value: 'Working Age', fill: '#06b6d4', fontSize: 9 }}
+              />
+              <ReferenceLine
+                y={retirementAge}
+                stroke="#fbbf24"
+                strokeDasharray="3 3"
+                label={{ position: 'right', value: 'Retirement', fill: '#fbbf24', fontSize: 9 }}
+              />
+              {medianAge !== undefined && (
+                <ReferenceLine
+                  y={Math.round(medianAge)}
+                  stroke="#a78bfa"
+                  strokeWidth={2}
+                  label={{ position: 'left', value: `Median ${medianAge.toFixed(1)}`, fill: '#a78bfa', fontSize: 9 }}
                 />
-              ))}
-            </Bar>
-            <Bar dataKey="right" barSize={5}>
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`cell-r-${index}`}
-                  fill={getBarColor(entry.status)}
-                />
-              ))}
-            </Bar>
-          </ComposedChart>
-        </ResponsiveContainer>
+              )}
+              <Bar dataKey="left" barSize={5}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-l-${index}`}
+                    fill={getBarColor(entry.status)}
+                  />
+                ))}
+              </Bar>
+              <Bar dataKey="right" barSize={5}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-r-${index}`}
+                    fill={getBarColor(entry.status)}
+                  />
+                ))}
+              </Bar>
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </div>
-      <div className="flex justify-center gap-6 text-xs mt-2 text-slate-500">
+      <div className="mt-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-cyan-500"></div> Youth (0-14)
         </div>

@@ -97,7 +97,7 @@ const App: React.FC = () => {
   }, [isPlaying]);
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8 flex flex-col">
+    <div className="relative flex min-h-screen flex-col bg-slate-950 p-4 font-sans text-slate-100 md:p-8">
       {/* Welcome Modal for first-time visitors */}
       {showWelcome && <WelcomeModal onClose={closeWelcome} />}
 
@@ -112,8 +112,8 @@ const App: React.FC = () => {
       </a>
 
       {/* Header */}
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-4">
-        <div>
+      <header className="mb-8 flex flex-col items-start justify-between gap-6 border-b border-slate-800 pb-4 sm:flex-row sm:items-center">
+        <div className="pr-12 sm:pr-0">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
             Portugal 2100
           </h1>
@@ -121,7 +121,7 @@ const App: React.FC = () => {
             Demographic Impact Simulator
           </p>
         </div>
-        <div className="flex items-center gap-4 mt-4 md:mt-0">
+        <div className="flex w-full items-center justify-between gap-4 sm:mt-0 sm:w-auto sm:justify-start">
           <div className="text-right">
              <div className="text-xs text-slate-500 uppercase tracking-wider">Simulation Year</div>
              <div className="text-4xl font-mono font-bold text-white">{currentYear}</div>
@@ -137,10 +137,10 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Grid */}
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="grid flex-grow grid-cols-1 gap-6 lg:grid-cols-12">
         
         {/* Left Column: Controls & Key Metrics (3 cols) */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="space-y-6 lg:col-span-3">
           
           {/* Controls Card */}
           <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-5 shadow-lg">
@@ -368,16 +368,16 @@ const App: React.FC = () => {
         </div>
 
         {/* Center Column: Pyramid + Charts (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-4">
-          <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 rounded-xl p-4 shadow-lg relative overflow-hidden flex flex-col h-[400px]">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
+          <div className="relative flex h-[400px] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 p-4 shadow-lg backdrop-blur-sm sm:h-[420px]">
              <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg h-[200px]">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div className="h-[220px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:h-[240px] xl:h-[200px]">
                <TrendChart fullHistory={simulationData} currentYear={currentYear} />
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg h-[200px]">
+            <div className="h-[240px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:h-[250px] xl:h-[200px]">
                <EconomicTrendChart
                  fullHistory={simulationData}
                  currentYear={currentYear}
@@ -390,7 +390,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Right Column: Metrics & Economic Indicators (3 cols) */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="space-y-4 lg:col-span-3">
           {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 gap-3">
              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between shadow-md">
@@ -446,9 +446,9 @@ const App: React.FC = () => {
 
       <footer className="mt-8">
         <AboutPanel />
-        <div className="mt-4 text-center text-slate-600 text-[10px] flex items-center justify-center gap-4">
+        <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center text-[10px] text-slate-600 sm:flex-row sm:gap-4">
           <span>Data based on Eurostat 2024 official statistics</span>
-          <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+          <span className="hidden h-1 w-1 rounded-full bg-slate-800 sm:block"></span>
           <span>Demographic Projection Model v2.0</span>
         </div>
       </footer>

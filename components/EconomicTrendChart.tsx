@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { YearData } from '../types';
 import InfoTooltip from './InfoTooltip';
+import useChartContainerReady from './useChartContainerReady';
 
 export type EconomicChartType = 'ssBalance' | 'burden' | 'sustainability';
 
@@ -22,6 +23,8 @@ interface Props {
 }
 
 const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartType, onChartTypeChange }) => {
+  const { containerRef, isReady } = useChartContainerReady();
+
   const chartData = fullHistory.map(d => ({
     year: d.year,
     ssBalance: d.economic.ssBalance / 1e9, // Convert to billions
@@ -64,12 +67,12 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
   const config = getChartConfig();
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="flex h-full w-full min-w-0 flex-col">
       {/* Chart type toggle */}
-      <div className="flex justify-center gap-1 mb-2">
+      <div className="mb-2 flex flex-wrap justify-center gap-1">
         <button
           onClick={() => onChartTypeChange('ssBalance')}
-          className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+          className={`min-w-0 flex-1 px-2 py-0.5 text-[10px] rounded transition-colors sm:flex-none ${
             chartType === 'ssBalance'
               ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
@@ -79,7 +82,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
         <button
           onClick={() => onChartTypeChange('burden')}
-          className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+          className={`min-w-0 flex-1 px-2 py-0.5 text-[10px] rounded transition-colors sm:flex-none ${
             chartType === 'burden'
               ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
@@ -89,7 +92,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
         <button
           onClick={() => onChartTypeChange('sustainability')}
-          className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+          className={`min-w-0 flex-1 px-2 py-0.5 text-[10px] rounded transition-colors sm:flex-none ${
             chartType === 'sustainability'
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
@@ -110,40 +113,42 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         } />
       </h3>
 
-      <div className="flex-grow min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-            <XAxis
-              dataKey="year"
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              domain={config.yDomain || ['auto', 'auto']}
-            />
-            <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
-              itemStyle={{ color: config.stroke }}
-              labelStyle={{ color: '#94a3b8' }}
-              formatter={(value: number) => [config.formatter(value), config.title]}
-            />
-            <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
-            {config.showZeroLine && <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />}
-            <Line
-              type="monotone"
-              dataKey={config.dataKey}
-              stroke={config.stroke}
-              strokeWidth={3}
-              dot={false}
-              activeDot={{ r: 6, fill: config.stroke }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
+        {isReady && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+              <XAxis
+                dataKey="year"
+                tick={{ fill: '#64748b', fontSize: 10 }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fill: '#64748b', fontSize: 10 }}
+                domain={config.yDomain || ['auto', 'auto']}
+              />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
+                itemStyle={{ color: config.stroke }}
+                labelStyle={{ color: '#94a3b8' }}
+                formatter={(value: number) => [config.formatter(value), config.title]}
+              />
+              <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
+              {config.showZeroLine && <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />}
+              <Line
+                type="monotone"
+                dataKey={config.dataKey}
+                stroke={config.stroke}
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 6, fill: config.stroke }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
