@@ -17,15 +17,15 @@ React 19 + TypeScript + Vite SPA simulating Portugal's demographic evolution 202
 
 ### Data Layer (`data/`)
 
-INE 2024 calibrated data:
+Runtime 2024 baseline data:
 
 | File | Description |
 |------|-------------|
-| `population2024.ts` | Population by single year of age/sex (10,749,635 total) |
-| `lifeTables.ts` | Mortality rates (qx), life expectancy 78.73 M / 83.96 F |
-| `fertilityRates.json` | ASFR calibrated to TFR 1.40 (sum verified), mean age 31.6 |
-| `migrationProfile.json` | Age-sex migration weights (normalized in code) |
-| `economicParams.json` | SS rates, employment by age, healthcare multipliers |
+| `population2024.ts` | Eurostat 1 January 2024 population by single year of age/sex (10,639,726 total) |
+| `lifeTables.ts` | 2024 mortality rates (qx), calibrated to Eurostat life expectancy 79.7 M / 85.2 F |
+| `fertilityRates.ts` | Eurostat 2024 ASFR calibrated to TFR 1.41, mean age 31.7 |
+| `migrationProfile.ts` | Corrected net migration profile inferred from official 2024-2025 population change |
+| `economicParams.json` | SS rates, employment by age, Eurostat health accounts, GDP per worker |
 
 ### Simulation Engine (`utils/simulation.ts`)
 
@@ -70,21 +70,21 @@ Key functions:
 - `EconomicMetrics` - Workforce, SS balance, healthcare, sustainability index
 - `SCENARIO_PRESETS` - Low/Medium/High demographic scenarios
 
-## Reference Values (INE 2024)
+## Reference Values (Eurostat 2024 baseline)
 
 | Metric | Value |
 |--------|-------|
-| Population | 10,749,635 |
-| Median age | 47.3 |
-| Life expectancy | 81.49 (M: 78.73, F: 83.96) |
-| TFR | 1.40 |
-| Net migration | +109,909 |
+| Population | 10,639,726 |
+| Median age | 47.1 |
+| Life expectancy | 82.5 (M: 79.7, F: 85.2) |
+| TFR | 1.41 |
+| Corrected net migration | +143,641 |
 
 ## Important Implementation Notes
 
-1. **ASFR scaling**: User TFR is applied as ratio to base 1.40 (`scaledASFR = baseASFR × (userTFR / 1.40)`)
+1. **ASFR scaling**: User TFR is applied as ratio to the 2024 base 1.41 (`scaledASFR = baseASFR × (userTFR / 1.41)`)
 2. **Migration normalization**: Weights don't sum to 1.0 in JSON; normalized dynamically in code
 3. **Age 100+ handling**: Aggregated at age 100 with high mortality, not dropped
 4. **Pension calculation**: Excludes working retirees (15% of 65-69, 4% of 70+)
-5. **Healthcare currency**: USD values from OECD converted to EUR (×0.93)
+5. **Healthcare currency**: Eurostat health spending is stored directly in EUR per inhabitant
 6. **Population validation**: Console warning if balance error >100 per year

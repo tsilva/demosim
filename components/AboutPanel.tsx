@@ -26,19 +26,19 @@ const AboutPanel: React.FC = () => {
               </div>
               <ul className="space-y-2 text-slate-400 text-xs">
                 <li>
-                  <span className="text-slate-300">Population:</span> INE Portugal 2024 estimates (10.75M)
+                  <span className="text-slate-300">Population:</span> Eurostat 1 January 2024 population (10.64M)
                 </li>
                 <li>
-                  <span className="text-slate-300">Mortality:</span> Portuguese life tables (M: 78.7y, F: 84.0y)
+                  <span className="text-slate-300">Mortality:</span> Eurostat 2024 mortality (M: 79.7y, F: 85.2y)
                 </li>
                 <li>
-                  <span className="text-slate-300">Fertility:</span> Age-specific rates calibrated to TFR 1.40
+                  <span className="text-slate-300">Fertility:</span> Eurostat 2024 age-specific rates (TFR 1.41)
                 </li>
                 <li>
-                  <span className="text-slate-300">Migration:</span> INE 2024 (+110K net)
+                  <span className="text-slate-300">Migration:</span> Eurostat 2024 corrected net migration (+143.6K)
                 </li>
                 <li>
-                  <span className="text-slate-300">Healthcare:</span> OECD age-cost multipliers
+                  <span className="text-slate-300">Healthcare:</span> Eurostat SHA 2024 + age-cost multipliers
                 </li>
               </ul>
             </div>

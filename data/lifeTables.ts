@@ -1,110 +1,42 @@
-// Calibrated to INE Portugal Life Tables 2022-2024
-// Life expectancy: 78.73 (M), 83.96 (F), 81.49 (total)
-// Reference: INE - Tabuas de Mortalidade 2022-2024
-//
-// The childhood and young-adult rates below are kept from the original
-// calibration. Ages 41+ are rebuilt with a Gompertz tail anchored at age 40 so
-// the implied life expectancy at birth matches the documented INE baseline.
-
-const MAX_LIFE_TABLE_AGE = 100;
-const OPEN_AGE_TAIL_LIMIT = 160;
-const ADULT_TAIL_START_AGE = 40;
-const MAX_OPEN_AGE_QX = 0.98;
-const LIFE_EXPECTANCY_TOLERANCE = 0.01;
-
-const BASE_QX_PREFIX = {
-  male: [
-    0.00280, 0.00025, 0.00018, 0.00014, 0.00012, 0.00010, 0.00009, 0.00008, 0.00008, 0.00008,
-    0.00008, 0.00009, 0.00010, 0.00012, 0.00015, 0.00020, 0.00028, 0.00038, 0.00048, 0.00055,
-    0.00060, 0.00062, 0.00063, 0.00062, 0.00060, 0.00058, 0.00057, 0.00057, 0.00058, 0.00060,
-    0.00063, 0.00067, 0.00072, 0.00078, 0.00085, 0.00093, 0.00102, 0.00112, 0.00124, 0.00138,
-    0.00154,
-  ],
-  female: [
-    0.00220, 0.00020, 0.00014, 0.00011, 0.00009, 0.00008, 0.00007, 0.00006, 0.00006, 0.00006,
-    0.00006, 0.00007, 0.00008, 0.00009, 0.00010, 0.00012, 0.00014, 0.00016, 0.00018, 0.00020,
-    0.00021, 0.00022, 0.00022, 0.00022, 0.00022, 0.00022, 0.00023, 0.00024, 0.00026, 0.00028,
-    0.00031, 0.00034, 0.00038, 0.00043, 0.00048, 0.00054, 0.00061, 0.00069, 0.00078, 0.00088,
-    0.00100,
-  ]
-};
-
-const LIFE_EXPECTANCY = {
-  male: 78.73,
-  female: 83.96,
-  total: 81.49
-} as const;
-
-const calculateLifeExpectancy = (qxArray: number[]): number => {
-  let survivors = 100000;
-  let personYears = 0;
-
-  for (let age = 0; age < OPEN_AGE_TAIL_LIMIT; age++) {
-    const qx = qxArray[Math.min(age, MAX_LIFE_TABLE_AGE)];
-    personYears += survivors;
-    survivors *= (1 - qx);
-
-    if (survivors < 1e-6) {
-      break;
-    }
-  }
-
-  return personYears / 100000;
-};
-
-const buildCalibratedQxSeries = (
-  baseQxPrefix: number[],
-  targetLifeExpectancy: number,
-  sex: 'male' | 'female'
-): number[] => {
-  const anchorQx = baseQxPrefix[ADULT_TAIL_START_AGE];
-
-  const buildSeries = (growthRate: number): number[] => {
-    const qxSeries = baseQxPrefix.slice();
-
-    for (let age = ADULT_TAIL_START_AGE + 1; age <= MAX_LIFE_TABLE_AGE; age++) {
-      qxSeries[age] = Math.min(
-        MAX_OPEN_AGE_QX,
-        anchorQx * Math.exp(growthRate * (age - ADULT_TAIL_START_AGE))
-      );
-    }
-
-    return qxSeries;
-  };
-
-  let lowGrowth = 0.01;
-  let highGrowth = 0.2;
-
-  for (let step = 0; step < 100; step++) {
-    const midGrowth = (lowGrowth + highGrowth) / 2;
-    const impliedLifeExpectancy = calculateLifeExpectancy(buildSeries(midGrowth));
-
-    if (impliedLifeExpectancy > targetLifeExpectancy) {
-      lowGrowth = midGrowth;
-    } else {
-      highGrowth = midGrowth;
-    }
-  }
-
-  const calibrated = buildSeries((lowGrowth + highGrowth) / 2);
-  const impliedLifeExpectancy = calculateLifeExpectancy(calibrated);
-
-  if (Math.abs(impliedLifeExpectancy - targetLifeExpectancy) > LIFE_EXPECTANCY_TOLERANCE) {
-    throw new Error(
-      `Failed to calibrate ${sex} mortality table: expected ${targetLifeExpectancy}, got ${impliedLifeExpectancy}.`
-    );
-  }
-
-  return calibrated;
-};
+// Eurostat demo_magec, demo_pjan, demo_mlexpec (2024)
+// Age-specific qx is derived from official 2024 deaths and 2024/2025 population
+// exposure, then scaled slightly so the implied life expectancy at birth matches
+// the published 2024 Eurostat values for Portugal.
 
 export const lifeTables = {
-  lifeExpectancy: LIFE_EXPECTANCY,
-  infantMortalityRate: 2.2,
+  lifeExpectancy: {
+    male: 79.7,
+    female: 85.2,
+    total: 82.5
+  },
+  infantMortalityRate: 3.1,
   // qx = probability of dying within one year at age x
   qx: {
-    male: buildCalibratedQxSeries(BASE_QX_PREFIX.male, LIFE_EXPECTANCY.male, 'male'),
-    female: buildCalibratedQxSeries(BASE_QX_PREFIX.female, LIFE_EXPECTANCY.female, 'female'),
+    male: [
+      0.003446, 0.000167, 0.000098, 0.000192, 0.000046, 0.000068, 0.000068, 0.00009, 0.000068, 0.000023,
+      0.000071, 0.000181, 0.000042, 0.00004, 0.00004, 0.00012, 0.000139, 0.000279, 0.000365, 0.000492,
+      0.000528, 0.000519, 0.000535, 0.000513, 0.000686, 0.000648, 0.000674, 0.000885, 0.00053, 0.000694,
+      0.000703, 0.000674, 0.000756, 0.00087, 0.001032, 0.000793, 0.000879, 0.001169, 0.001148, 0.000937,
+      0.001229, 0.001365, 0.001295, 0.001518, 0.002086, 0.001927, 0.002252, 0.002763, 0.002811, 0.003299,
+      0.003399, 0.004021, 0.004706, 0.004779, 0.005821, 0.006647, 0.006656, 0.007687, 0.008336, 0.008498,
+      0.00977, 0.011107, 0.011779, 0.012746, 0.012424, 0.013751, 0.014959, 0.015202, 0.017781, 0.017936,
+      0.020876, 0.022311, 0.021949, 0.0242, 0.025604, 0.028656, 0.031242, 0.033337, 0.039165, 0.044626,
+      0.047186, 0.056922, 0.058556, 0.065468, 0.080976, 0.09444, 0.103086, 0.113102, 0.129875, 0.148954,
+      0.172865, 0.201548, 0.216231, 0.218994, 0.243562, 0.279201, 0.306344, 0.33118, 0.351478, 0.382441,
+      0.42156
+    ],
+    female: [
+      0.002756, 0.000102, 0.000079, 0.000078, 0.000025, 0.000072, 0.000096, 0.00012, 0.000048, 0.000099,
+      0.00015, 0.00012, 0.000045, 0.000021, 0.000146, 0.000126, 0.000083, 0.000166, 0.000243, 0.000299,
+      0.000176, 0.000116, 0.000174, 0.00026, 0.00018, 0.000166, 0.000223, 0.000299, 0.000302, 0.00017,
+      0.000295, 0.000303, 0.000405, 0.000351, 0.000543, 0.000348, 0.000637, 0.000731, 0.00058, 0.000712,
+      0.000636, 0.000673, 0.000738, 0.000967, 0.000991, 0.001099, 0.001186, 0.001586, 0.001661, 0.001736,
+      0.001685, 0.001999, 0.001967, 0.002268, 0.002394, 0.002757, 0.002788, 0.002932, 0.003435, 0.003679,
+      0.003813, 0.004125, 0.004073, 0.004708, 0.005468, 0.005879, 0.00624, 0.006974, 0.007332, 0.007614,
+      0.008957, 0.010114, 0.010879, 0.012733, 0.014293, 0.014949, 0.017351, 0.020614, 0.024207, 0.027542,
+      0.03226, 0.036928, 0.041268, 0.049121, 0.057231, 0.069228, 0.074973, 0.087669, 0.101139, 0.117965,
+      0.136375, 0.156231, 0.180147, 0.188076, 0.222582, 0.244032, 0.26288, 0.300787, 0.321865, 0.340375,
+      0.399516
+    ]
   }
-  // Note: mortalityImprovementRate is configurable via SimulationParams and SCENARIO_PRESETS in types.ts.
 };

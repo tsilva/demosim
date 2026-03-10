@@ -22,9 +22,9 @@ export const generateInitialData = (): AgeGroup[] => {
 
 /**
  * Get mortality rate (qx) for a given age and sex
- * Uses INE Life Tables 2022-2024 calibrated to life expectancy:
- * - Male: 78.73 years
- * - Female: 83.96 years
+ * Uses Eurostat 2024 mortality calibrated to life expectancy:
+ * - Male: 79.7 years
+ * - Female: 85.2 years
  *
  * @param age - Age in years
  * @param sex - 'male' or 'female'
@@ -64,7 +64,7 @@ const getHalfYearMortalityRate = (annualQx: number): number => {
 /**
  * Get age-specific fertility rate (ASFR)
  * Returns births per woman per year for a given age
- * Based on INE 2023 data, calibrated to TFR 1.40 and mean age 31.6
+ * Based on Eurostat 2024 data, calibrated to TFR 1.41 and mean age 31.7
  */
 const getFertilityRate = (age: number): number => {
   const asfrEntry = fertilityData.asfr.find(a => a.age === age);
@@ -153,7 +153,7 @@ const getEmploymentRate = (
 /**
  * Get healthcare cost multiplier for a given age
  * Returns multiplier relative to 20-64 baseline (1.0)
- * Source: OECD Health Statistics 2024
+ * Source: Eurostat health accounts 2024
  */
 const getHealthcareMultiplier = (age: number): number => {
   const multipliers = economicParams.healthcare.ageMultipliers;
@@ -187,12 +187,12 @@ const getHealthcareMultiplier = (age: number): number => {
  * HEALTHCARE COSTS:
  *   Sum over all ages: population[age] * baseCost * ageMultiplier[age] * inflationFactor
  *   Where:
- *   - baseCost = 2,744 EUR/year per capita
+ *   - baseCost = 2,730.81 EUR/year per capita
  *   - ageMultiplier: 0.6 (0-19), 1.0 (20-64), 2.5 (65-74), 4.0 (75-84), 6.0 (85+)
  *
  * SUSTAINABILITY INDEX:
  *   100 * (1 - totalBurden / (GDP * 0.40))
- *   Where totalBurden = ssDeficit + publicHealthcareCost (66% of total)
+ *   Where totalBurden = ssDeficit + publicHealthcareCost
  *   40% of GDP threshold = system breaking point (index = 0)
  *   Capped at 0 (critical) to 100 (fully sustainable)
  */
@@ -209,9 +209,9 @@ const calculateEconomicMetrics = (
                         economicParams.wages.annualMultiplier; // 1505 * 14 = 21070
   const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
                          economicParams.wages.annualMultiplier; // 580 * 14 = 8120
-  // Healthcare cost from OECD is in USD, convert to EUR
+  // Healthcare spending is stored directly in EUR per inhabitant
   const usdToEur = economicParams.healthcare.usdToEur;
-  const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur; // ~2552 EUR
+  const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur;
   const wageGrowth = economicParams.productivity.annualGrowthRate; // 0.015
   const healthcareInflation = economicParams.healthcare.annualInflation;
 
@@ -268,8 +268,8 @@ const calculateEconomicMetrics = (
     totalHealthcareCost += group.total * costPerPerson;
   }
 
-  // Public healthcare = government-funded share (66% per OECD data)
-  const publicShare = economicParams.healthcare.publicShare; // 0.66
+  // Public healthcare = government-funded share from Eurostat SHA 2024
+  const publicShare = economicParams.healthcare.publicShare;
   const publicHealthcareCost = totalHealthcareCost * publicShare;
 
   const healthcareCostPerWorker = actualWorkforce > 0
@@ -406,8 +406,8 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       if (group.age >= 15 && group.age <= 49) {
         // Get ASFR for this age, adjusted by user's TFR parameter
         const baseASFR = getFertilityRate(group.age);
-        // Scale ASFR proportionally to user's TFR setting (base TFR is 1.40)
-        const scaledASFR = baseASFR * (params.fertilityRate / 1.40);
+        // Scale ASFR proportionally to the official 2024 base TFR
+        const scaledASFR = baseASFR * (params.fertilityRate / fertilityData.totalFertilityRate);
         totalBirths += group.female * scaledASFR;
       }
     }

@@ -15,7 +15,7 @@
 
 ## Overview
 
-An interactive demographic simulation tool built with React that models Portugal's population evolution through 2100. Based on official INE (Instituto Nacional de Estatística) 2024 data, it uses the cohort-component method (UN/Eurostat standard) to project population changes and their economic consequences.
+An interactive demographic simulation tool built with React that models Portugal's population evolution through 2100. Based on Eurostat's 2024 official statistics for Portugal, it uses the cohort-component method (UN/Eurostat standard) to project population changes and their economic consequences.
 
 Adjust fertility rates, migration, retirement age, and mortality improvements to see how policy decisions ripple through decades of population structure, social security funding, and healthcare costs.
 
@@ -37,15 +37,15 @@ Open http://localhost:3000
 
 ## Data Sources
 
-All demographic data is calibrated to INE 2024 official statistics:
+The runtime demographic baseline now uses Eurostat 2024 official statistics:
 
 | Metric | 2024 Value |
 |--------|------------|
-| Total Population | 10,749,635 |
-| Median Age | 47.3 years |
-| Life Expectancy | 81.49 (M: 78.73, F: 83.96) |
-| Total Fertility Rate | 1.40 |
-| Net Migration | +109,909 |
+| Total Population | 10,639,726 |
+| Median Age | 47.1 years |
+| Life Expectancy | 82.5 (M: 79.7, F: 85.2) |
+| Total Fertility Rate | 1.41 |
+| Corrected Net Migration | +143,641 |
 
 ## Simulation Parameters
 
@@ -67,7 +67,7 @@ All demographic data is calibrated to INE 2024 official statistics:
 │   ├── TrendChart.tsx      # Dependency ratio over time
 │   ├── EconomicMetrics.tsx # SS balance, healthcare, sustainability
 │   └── EconomicTrendChart.tsx
-├── data/                   # INE 2024 calibrated datasets
+├── data/                   # Eurostat / official-source 2024 baseline datasets
 │   ├── population2024.ts   # Population by age/sex
 │   ├── lifeTables.ts       # Mortality rates (qx)
 │   ├── fertilityRates.ts   # Age-specific fertility rates

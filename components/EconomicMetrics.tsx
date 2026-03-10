@@ -54,7 +54,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Healthcare Cost
-          <InfoTooltip content="Total healthcare spending based on population age structure. Public share (66%) counts toward fiscal burden. Elderly care costs 6x more than youth." />
+          <InfoTooltip content="Total healthcare spending based on population age structure. Public share (62%) counts toward fiscal burden. Elderly care costs 6x more than youth." />
         </p>
         <p className="text-xl font-bold text-cyan-400">
           {formatCurrency(metrics.publicHealthcareCost)}
@@ -68,7 +68,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Burden per Worker
-          <InfoTooltip content="Annual cost each worker must cover for SS deficit and public healthcare (66% of total). Higher values reduce disposable income and competitiveness." />
+          <InfoTooltip content="Annual cost each worker must cover for SS deficit and public healthcare (62% of total). Higher values reduce disposable income and competitiveness." />
         </p>
         <p className={`text-xl font-bold ${
           metrics.totalBurdenPerWorker > 20000 ? 'text-rose-400' : 'text-amber-400'

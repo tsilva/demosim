@@ -79,10 +79,10 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   medium: {
     name: 'Medium',
-    description: 'Current trends continue: TFR 1.40, migration 110K/year (INE 2024 baseline)',
+    description: 'Current trends continue: TFR 1.41, corrected net migration 144K/year (Eurostat 2024 baseline)',
     params: {
-      fertilityRate: 1.40,
-      netMigration: 110000,
+      fertilityRate: 1.41,
+      netMigration: 143641,
       mortalityImprovement: { male: 0.010, female: 0.008 },
       workforceEntryAgeShift: 0,    // Current workforce entry patterns
       unemploymentAdjustment: 0     // Current unemployment levels
@@ -100,5 +100,4 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     }
   }
 };
-
 

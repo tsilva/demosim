@@ -20,8 +20,8 @@ const App: React.FC = () => {
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('medium');
   const [params, setParams] = useState<SimulationParams>({
     retirementAge: 66, // Portugal's current baseline is 66y 5m (2025), using 66 for slider
-    fertilityRate: 1.40, // INE 2024: TFR decreased to 1.40 children per woman
-    netMigration: 110000, // INE 2024: Net migration +109,909 people
+    fertilityRate: 1.41, // Eurostat 2024: TFR 1.41 children per woman
+    netMigration: 143641, // Eurostat 2024: corrected net migration
     mortalityImprovement: { male: 0.010, female: 0.008 }, // Default medium scenario
     workforceEntryAgeShift: 0, // No shift from current patterns
     unemploymentAdjustment: 0, // Baseline unemployment levels
@@ -49,8 +49,8 @@ const App: React.FC = () => {
     setSelectedScenario('medium');
     setParams({
       retirementAge: 66,
-      fertilityRate: 1.40,
-      netMigration: 110000,
+      fertilityRate: 1.41,
+      netMigration: 143641,
       mortalityImprovement: { male: 0.010, female: 0.008 },
       workforceEntryAgeShift: 0,
       unemploymentAdjustment: 0,
@@ -447,7 +447,7 @@ const App: React.FC = () => {
       <footer className="mt-8">
         <AboutPanel />
         <div className="mt-4 text-center text-slate-600 text-[10px] flex items-center justify-center gap-4">
-          <span>Data based on INE 2024 Estimates</span>
+          <span>Data based on Eurostat 2024 official statistics</span>
           <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
           <span>Demographic Projection Model v2.0</span>
         </div>
