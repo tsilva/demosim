@@ -1,8 +1,10 @@
+'use client';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
 import { runSimulation } from './utils/simulation';
-import { trackEvent, trackPageView } from './utils/analytics';
+import { initGoogleAnalytics, trackEvent, trackPageView } from './utils/analytics';
 import PyramidChart from './components/PyramidChart';
 import TrendChart from './components/TrendChart';
 import EconomicMetrics from './components/EconomicMetrics';
@@ -83,6 +85,17 @@ const App: React.FC = () => {
 
   // Animation Loop
   useEffect(() => {
+    initGoogleAnalytics();
+
+    if (hasTrackedInitialPageView) {
+      return;
+    }
+
+    trackPageView();
+    hasTrackedInitialPageView = true;
+  }, []);
+
+  useEffect(() => {
     let interval: number;
     if (isPlaying) {
       interval = window.setInterval(() => {
@@ -97,15 +110,6 @@ const App: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [isPlaying]);
-
-  useEffect(() => {
-    if (hasTrackedInitialPageView) {
-      return;
-    }
-
-    trackPageView();
-    hasTrackedInitialPageView = true;
-  }, []);
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-slate-950 p-3 font-sans text-slate-100 sm:p-4 md:p-8">

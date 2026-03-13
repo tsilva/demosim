@@ -1,6 +1,5 @@
 const measurementId =
-  import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() ||
-  import.meta.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
 
 type AnalyticsValue = string | number | boolean | null | undefined;
 type AnalyticsParams = Record<string, AnalyticsValue>;

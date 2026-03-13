@@ -3,9 +3,9 @@
 
   # demosim
 
+  [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js)](https://nextjs.org)
   [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript)](https://www.typescriptlang.org)
-  [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vite.dev)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
   **📊 Explore Portugal's demographic future from 2024 to 2100 with real-time economic impact projections 🇵🇹**
@@ -15,7 +15,7 @@
 
 ## Overview
 
-An interactive demographic simulation tool built with React that models Portugal's population evolution through 2100. Based on Eurostat's 2024 official statistics for Portugal, it uses the cohort-component method (UN/Eurostat standard) to project population changes and their economic consequences.
+An interactive demographic simulation tool built with Next.js and React that models Portugal's population evolution through 2100. Based on Eurostat's 2024 official statistics for Portugal, it uses the cohort-component method (UN/Eurostat standard) to project population changes and their economic consequences.
 
 Adjust fertility rates, migration, retirement age, and mortality improvements to see how policy decisions ripple through decades of population structure, social security funding, and healthcare costs.
 
@@ -63,7 +63,11 @@ The runtime demographic baseline now uses Eurostat 2024 official statistics:
 ## Architecture
 
 ```
-├── App.tsx                 # Main application with state management
+├── app/
+│   ├── layout.tsx          # Next.js metadata, SEO, and structured data
+│   ├── page.tsx            # Route entrypoint
+│   └── globals.css         # Tailwind-powered global styles
+├── App.tsx                 # Client-side simulator shell
 ├── components/
 │   ├── PyramidChart.tsx    # Population pyramid (Recharts)
 │   ├── TrendChart.tsx      # Dependency ratio over time
@@ -97,7 +101,8 @@ Where:
 npm install          # Install dependencies
 npm run dev          # Dev server (port 3000)
 npm run build        # Production build
-npm run preview      # Preview build
+npm run start        # Serve the production build
+npm run preview      # Alias for next start
 ```
 
 ## Contributing

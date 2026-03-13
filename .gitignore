@@ -59,6 +59,7 @@ logs/
 .idea
 dist
 dist-ssr
+.next
 lerna-debug.log*
 logs
 node_modules
