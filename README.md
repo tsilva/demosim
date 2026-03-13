@@ -35,6 +35,8 @@ npm run dev
 
 Open http://localhost:3000
 
+Analytics is enabled automatically when `NEXT_PUBLIC_GA_MEASUREMENT_ID` is present in the environment, including Vercel project settings.
+
 ## Data Sources
 
 The runtime demographic baseline now uses Eurostat 2024 official statistics:

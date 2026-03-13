@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
 import { runSimulation } from './utils/simulation';
+import { trackEvent, trackPageView } from './utils/analytics';
 import PyramidChart from './components/PyramidChart';
 import TrendChart from './components/TrendChart';
 import EconomicMetrics from './components/EconomicMetrics';
@@ -12,6 +13,7 @@ import AboutPanel from './components/AboutPanel';
 const START_YEAR = 2024;
 const END_YEAR = 2100;
 const DEFAULT_SCENARIO: ScenarioType = 'medium';
+let hasTrackedInitialPageView = false;
 
 const cloneParams = (source: SimulationParams): SimulationParams => ({
   ...source,
@@ -38,9 +40,22 @@ const App: React.FC = () => {
   const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
 
   // --- Handlers ---
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  const togglePlay = () => {
+    setIsPlaying((previousState) => {
+      const nextState = !previousState;
+      trackEvent(nextState ? 'simulation_play' : 'simulation_pause', {
+        current_year: currentYear,
+        scenario: selectedScenario,
+      });
+      return nextState;
+    });
+  };
 
   const reset = () => {
+    trackEvent('simulation_reset', {
+      current_year: currentYear,
+      scenario: selectedScenario,
+    });
     setIsPlaying(false);
     setCurrentYear(START_YEAR);
     setSelectedScenario(DEFAULT_SCENARIO);
@@ -50,6 +65,10 @@ const App: React.FC = () => {
 
   // Handle scenario selection
   const handleScenarioChange = (scenario: ScenarioType) => {
+    if (scenario !== selectedScenario) {
+      trackEvent('scenario_change', { scenario });
+    }
+
     setSelectedScenario(scenario);
     if (scenario !== 'custom') {
       setParams(cloneParams(SCENARIO_PRESETS[scenario].params));
@@ -78,6 +97,15 @@ const App: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [isPlaying]);
+
+  useEffect(() => {
+    if (hasTrackedInitialPageView) {
+      return;
+    }
+
+    trackPageView();
+    hasTrackedInitialPageView = true;
+  }, []);
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-slate-950 p-3 font-sans text-slate-100 sm:p-4 md:p-8">
@@ -202,7 +230,11 @@ const App: React.FC = () => {
               <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-3 md:hidden">
                 <button
                   type="button"
-                  onClick={() => setShowAdvancedControls(prev => !prev)}
+                  onClick={() => {
+                    const nextState = !showAdvancedControls;
+                    setShowAdvancedControls(nextState);
+                    trackEvent('advanced_controls_toggle', { expanded: nextState });
+                  }}
                   className="flex w-full items-center justify-between text-left"
                   aria-expanded={showAdvancedControls}
                   aria-controls="advanced-controls"
