@@ -3,28 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portugal Demographics Simulator | 2024-2100 Population Projection</title>
-    <meta name="description" content="Interactive demographic simulator for Portugal's population evolution from 2024 to 2100. Explore aging, fertility, migration, and economic sustainability scenarios based on Eurostat data." />
-    <meta name="keywords" content="Portugal demographics, population simulator, demographic projection, Eurostat data, aging population, fertility rates, migration, economic sustainability, population pyramid, dependency ratio" />
+    <title>Portugal 2100 Simulator | Demographics, Aging, Migration, and Economic Pressure</title>
+    <meta name="description" content="What happens to Portugal if births stay low, migration rises, or retirement shifts later? Run Eurostat-based 2024-2100 population and economic projections in one interactive simulator." />
+    <meta name="keywords" content="Portugal demographics, Portugal population projection, Portugal 2100, population simulator, demographic projection, Eurostat, aging population, fertility rates, migration scenarios, dependency ratio, social security, healthcare costs" />
     <meta name="author" content="Tiago Silva" />
-    
+    <meta name="application-name" content="Portugal 2100 Simulator" />
+    <meta name="theme-color" content="#020617" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="apple-mobile-web-app-title" content="Portugal 2100 Simulator" />
+
+    <link rel="canonical" href="https://demosim.tsilva.eu/" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://demosim.tsilva.eu" />
-    <meta property="og:title" content="Portugal Demographics Simulator | 2024-2100 Population Projection" />
-    <meta property="og:description" content="Interactive demographic simulator for Portugal. Explore population aging, fertility, migration, and economic sustainability scenarios." />
-    <meta property="og:site_name" content="Portugal Demographics Simulator" />
-    <meta property="og:locale" content="en_US" />
-    
+    <meta property="og:url" content="https://demosim.tsilva.eu/" />
+    <meta property="og:title" content="Can Portugal Avoid Demographic Decline by 2100?" />
+    <meta property="og:description" content="Adjust fertility, migration, and retirement age to see Portugal's population pyramid and fiscal pressure change in real time." />
+    <meta property="og:site_name" content="Portugal 2100 Simulator" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:locale:alternate" content="pt_PT" />
+    <meta property="og:image" content="https://demosim.tsilva.eu/og-image.png" />
+    <meta property="og:image:secure_url" content="https://demosim.tsilva.eu/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Portugal 2100 Simulator preview with demographic and economic projection branding." />
+
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://demosim.tsilva.eu" />
-    <meta name="twitter:title" content="Portugal Demographics Simulator | 2024-2100" />
-    <meta name="twitter:description" content="Interactive demographic simulator for Portugal. Explore aging, fertility, and economic scenarios." />
-    <meta name="twitter:creator" content="@tiagosilva" />
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://demosim.tsilva.eu" />
+    <meta name="twitter:url" content="https://demosim.tsilva.eu/" />
+    <meta name="twitter:title" content="Can Portugal Avoid Demographic Decline by 2100?" />
+    <meta name="twitter:description" content="Run Eurostat-based simulations for Portugal's population, aging, migration, and economic sustainability through 2100." />
+    <meta name="twitter:image" content="https://demosim.tsilva.eu/og-image.png" />
+    <meta name="twitter:image:alt" content="Portugal 2100 Simulator preview card." />
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -36,24 +55,80 @@
     
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Portugal Demographics Simulator",
-      "url": "https://demosim.tsilva.eu",
-      "description": "Interactive demographic simulator for Portugal's population evolution from 2024 to 2100 based on Eurostat data.",
-      "author": {
-        "@type": "Person",
-        "name": "Tiago Silva",
-        "url": "https://www.tsilva.eu"
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://demosim.tsilva.eu/#website",
+        "name": "Portugal 2100 Simulator",
+        "url": "https://demosim.tsilva.eu/",
+        "description": "Interactive demographic and economic simulator for Portugal's future population structure from 2024 to 2100.",
+        "inLanguage": "en",
+        "image": "https://demosim.tsilva.eu/og-image.png",
+        "author": {
+          "@type": "Person",
+          "name": "Tiago Silva",
+          "url": "https://www.tsilva.eu"
+        },
+        "publisher": {
+          "@type": "Person",
+          "name": "Tiago Silva",
+          "url": "https://www.tsilva.eu"
+        }
       },
-      "applicationCategory": "SimulationApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "@id": "https://demosim.tsilva.eu/#webapp",
+        "name": "Portugal 2100 Simulator",
+        "url": "https://demosim.tsilva.eu/",
+        "description": "Run Eurostat-based simulations for Portugal's population, aging, fertility, migration, social security, and healthcare burden through 2100.",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "isAccessibleForFree": true,
+        "image": "https://demosim.tsilva.eu/og-image.png",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Tiago Silva",
+          "url": "https://www.tsilva.eu"
+        },
+        "sameAs": [
+          "https://github.com/tsilva/demosim"
+        ],
+        "featureList": [
+          "Population pyramid projection from 2024 to 2100",
+          "Scenario presets for fertility, migration, and mortality",
+          "Economic outputs for social security and healthcare burden",
+          "Interactive year-by-year simulation controls"
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "@id": "https://demosim.tsilva.eu/#dataset",
+        "name": "Portugal demographic simulation baseline inputs",
+        "url": "https://demosim.tsilva.eu/",
+        "description": "Eurostat-calibrated baseline inputs for Portugal's 2024 population, fertility, mortality, migration, and economic assumptions used by the simulator.",
+        "creator": {
+          "@type": "Person",
+          "name": "Tiago Silva",
+          "url": "https://www.tsilva.eu"
+        },
+        "license": "https://opensource.org/licenses/MIT",
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "Eurostat demographic and population statistics"
+          }
+        ]
       }
-    }
+    ]
     </script>
   
   <script type="importmap">
@@ -69,6 +144,15 @@
 </script>
 </head>
   <body>
+    <noscript>
+      <section style="max-width: 56rem; margin: 0 auto; padding: 2rem 1.25rem; font-family: sans-serif; color: #e2e8f0;">
+        <h1 style="font-size: 2rem; margin-bottom: 0.75rem;">Portugal 2100 Simulator</h1>
+        <p style="line-height: 1.6; color: #cbd5e1;">
+          Explore how fertility, migration, mortality, and retirement policy affect Portugal's population structure and fiscal pressure from 2024 to 2100.
+          This simulator uses Eurostat-based baseline data and requires JavaScript to run.
+        </p>
+      </section>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
