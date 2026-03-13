@@ -1,4 +1,6 @@
-const measurementId = import.meta.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+const measurementId =
+  import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() ||
+  import.meta.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
 
 type AnalyticsValue = string | number | boolean | null | undefined;
 type AnalyticsParams = Record<string, AnalyticsValue>;
@@ -23,8 +25,8 @@ export function initGoogleAnalytics() {
   }
 
   window.dataLayer = window.dataLayer || [];
-  window.gtag = window.gtag || function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
+  window.gtag = window.gtag || function gtag() {
+    window.dataLayer.push(arguments);
   };
 
   const existingScript = document.querySelector<HTMLScriptElement>('script[data-ga-loader="true"]');
