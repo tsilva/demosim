@@ -1,114 +1,60 @@
 <div align="center">
-  <img src="logo.png" alt="demosim" width="512"/>
-
-  # demosim
-
-  [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js)](https://nextjs.org)
-  [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
-  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  <img src="./logo.png" alt="demosim" width="420" />
 
   **📊 Explore Portugal's demographic future from 2024 to 2100 with real-time economic impact projections 🇵🇹**
 
-  [Live Demo](https://demosim.tsilva.eu) · [CLAUDE.md](CLAUDE.md)
+  [Live Demo](https://demosim.tsilva.eu)
 </div>
 
-## Overview
+demosim is an interactive Next.js simulator for Portugal's population and economic pressure through 2100. It uses 2024 Eurostat-calibrated demographic inputs, a cohort-component projection model, and year-by-year charts for population structure, dependency ratio, social security balance, healthcare cost, and sustainability.
 
-An interactive demographic simulation tool built with Next.js and React that models Portugal's population evolution through 2100. Based on Eurostat's 2024 official statistics for Portugal, it uses the cohort-component method (UN/Eurostat standard) to project population changes and their economic consequences.
+Use it to adjust fertility, migration, mortality improvement, retirement age, and workforce assumptions, then compare how those choices change Portugal's long-term demographic path.
 
-Adjust fertility rates, migration, retirement age, and mortality improvements to see how policy decisions ripple through decades of population structure, social security funding, and healthcare costs.
-
-## Features
-
-- **Population Pyramid Visualization** - Watch the age structure transform year by year with animated transitions
-- **Economic Impact Modeling** - Track social security balance, healthcare costs, and fiscal sustainability
-- **Scenario Presets** - Compare low, medium, and high projection scenarios from Eurostat EUROPOP2023
-- **Real-Time Scrubbing** - Instantly jump to any year with cached simulation results
-
-## Quick Start
+## Install
 
 ```bash
-npm install
-npm run dev
+git clone git@github.com:tsilva/demosim.git
+cd demosim
+corepack enable
+pnpm install
+pnpm dev
 ```
 
-Open http://localhost:3000
-
-Analytics is enabled automatically when `NEXT_PUBLIC_GA_MEASUREMENT_ID` is present in the environment, including Vercel project settings.
-
-## Data Sources
-
-The runtime demographic baseline now uses Eurostat 2024 official statistics:
-
-| Metric | 2024 Value |
-|--------|------------|
-| Total Population | 10,639,726 |
-| Median Age | 47.1 years |
-| Life Expectancy | 82.5 (M: 79.7, F: 85.2) |
-| Total Fertility Rate | 1.41 |
-| Corrected Net Migration | +143,641 |
-
-## Simulation Parameters
-
-| Parameter | Range | Description |
-|-----------|-------|-------------|
-| Retirement Age | 60-75 | Official retirement threshold |
-| Fertility Rate | 0.8-2.5 | Children per woman (replacement = 2.1) |
-| Net Migration | -10K to 150K | Annual immigrants minus emigrants |
-| Mortality Improvement | 0-2% | Annual reduction in death rates |
-| Workforce Entry Shift | -3 to +5 years | Age adjustment for entering workforce |
-| Unemployment Adjustment | -10% to +15% | Change from baseline unemployment |
-
-## Architecture
-
-```
-├── app/
-│   ├── layout.tsx          # Next.js metadata, SEO, and structured data
-│   ├── page.tsx            # Route entrypoint
-│   └── globals.css         # Tailwind-powered global styles
-├── App.tsx                 # Client-side simulator shell
-├── components/
-│   ├── PyramidChart.tsx    # Population pyramid (Recharts)
-│   ├── TrendChart.tsx      # Dependency ratio over time
-│   ├── EconomicMetrics.tsx # SS balance, healthcare, sustainability
-│   └── EconomicTrendChart.tsx
-├── data/                   # Eurostat / official-source 2024 baseline datasets
-│   ├── population2024.ts   # Population by age/sex
-│   ├── lifeTables.ts       # Mortality rates (qx)
-│   ├── fertilityRates.ts   # Age-specific fertility rates
-│   └── migrationProfile.ts # Migration weights by age
-└── utils/
-    └── simulation.ts       # Cohort-component projection engine
-```
-
-## Economic Model
-
-The sustainability index measures fiscal pressure on a 0-100 scale:
-
-```
-Sustainability = 100 × (1 - totalBurden / (GDP × 0.40))
-```
-
-Where:
-- **Total Burden** = Social Security deficit + Healthcare costs
-- **GDP** = Workforce × GDP per worker × inflation factor
-- **40% threshold** represents the breaking point for public finances
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Commands
 
 ```bash
-npm install          # Install dependencies
-npm run dev          # Dev server (port 3000)
-npm run build        # Production build
-npm run start        # Serve the production build
-npm run preview      # Alias for next start
+pnpm install   # install dependencies
+pnpm dev       # start the Next.js dev server
+pnpm build     # build production output
+pnpm start     # serve the production build
+pnpm preview   # alias for pnpm start
 ```
 
-## Contributing
+## Notes
 
-Contributions are welcome. Please ensure any demographic data changes include source citations from official statistical agencies (INE, Eurostat, UN).
+- `pnpm` is required. The repo has a `preinstall` guard and declares `pnpm@10.27.0` in `package.json`.
+- The app requires JavaScript in the browser.
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` is optional. When present, the app loads Google Analytics and tracks page views plus simulator interactions.
+- Runtime data lives in `data/`: 2024 population by age and sex, life tables, fertility rates, migration profile, and economic assumptions.
+- The simulation keeps age `100+` as an aggregate cohort and logs a console warning if the population balance error exceeds 100 people in a projected year.
+- Deployment metadata is included for Vercel as a Next.js app.
+
+## Data Baseline
+
+| Metric | 2024 value |
+| --- | --- |
+| Population | 10,639,726 |
+| Median age | 47.1 |
+| Life expectancy | 82.5 overall, 79.7 male, 85.2 female |
+| Total fertility rate | 1.41 |
+| Corrected net migration | +143,641 |
+
+## Architecture
+
+![demosim architecture diagram](./architecture.png)
 
 ## License
 
-MIT
+[MIT](LICENSE)
