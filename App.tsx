@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
 import { runSimulation } from './utils/simulation';
 import { initGoogleAnalytics, trackEvent, trackPageView } from './utils/analytics';
 import PyramidChart from './components/PyramidChart';
-import TrendChart from './components/TrendChart';
-import EconomicMetrics from './components/EconomicMetrics';
-import EconomicTrendChart, { EconomicChartType } from './components/EconomicTrendChart';
+import type { EconomicChartType } from './components/EconomicTrendChart';
 import InfoTooltip from './components/InfoTooltip';
-import AboutPanel from './components/AboutPanel';
+
+const EconomicMetrics = dynamic(() => import('./components/EconomicMetrics'), { ssr: false });
+const TrendChart = dynamic(() => import('./components/TrendChart'), { ssr: false });
+const EconomicTrendChart = dynamic(() => import('./components/EconomicTrendChart'), { ssr: false });
+const AboutPanel = dynamic(() => import('./components/AboutPanel'), { ssr: false });
 
 const START_YEAR = 2024;
 const END_YEAR = 2100;
@@ -29,11 +32,25 @@ const App: React.FC = () => {
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>(DEFAULT_SCENARIO);
   const [params, setParams] = useState<SimulationParams>(() => cloneParams(SCENARIO_PRESETS[DEFAULT_SCENARIO].params));
   const [showAdvancedControls, setShowAdvancedControls] = useState(false);
+  const trendChartsRef = useRef<HTMLDivElement | null>(null);
+  const secondaryContentRef = useRef<HTMLDivElement | null>(null);
+  const [shouldRenderTrendCharts, setShouldRenderTrendCharts] = useState(false);
+  const [shouldRenderSecondaryContent, setShouldRenderSecondaryContent] = useState(false);
   
-  // Cache simulation results so scrubbing is instant
-  const simulationData = useMemo(() => {
-    return runSimulation(START_YEAR, END_YEAR, params);
+  const initialSimulationData = useMemo(() => {
+    return runSimulation(START_YEAR, START_YEAR, params);
   }, [params]);
+
+  const needsFullSimulation = shouldRenderTrendCharts || currentYear !== START_YEAR || isPlaying;
+
+  // Cache full simulation results only when controls or visible charts need the full history.
+  const simulationData = useMemo(() => {
+    if (!needsFullSimulation) {
+      return initialSimulationData;
+    }
+
+    return runSimulation(START_YEAR, END_YEAR, params);
+  }, [initialSimulationData, needsFullSimulation, params]);
 
   const currentData = simulationData.find(d => d.year === currentYear) || simulationData[0];
   const isCustomScenario = selectedScenario === 'custom';
@@ -110,6 +127,52 @@ const App: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [isPlaying]);
+
+  useEffect(() => {
+    const element = trendChartsRef.current;
+    if (!element) {
+      return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setShouldRenderTrendCharts(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setShouldRenderTrendCharts(true);
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const element = secondaryContentRef.current;
+    if (!element) {
+      return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setShouldRenderSecondaryContent(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setShouldRenderSecondaryContent(true);
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-slate-950 p-3 font-sans text-slate-100 sm:p-4 md:p-8">
@@ -188,9 +251,10 @@ const App: React.FC = () => {
                   ))}
                 </div>
                 {selectedScenario !== 'custom' && (
-                  <p className="text-[10px] text-slate-500 mt-2 italic">
-                    {SCENARIO_PRESETS[selectedScenario].description}
-                  </p>
+                  <p
+                    className="text-[10px] text-slate-500 mt-2 italic"
+                    dangerouslySetInnerHTML={{ __html: SCENARIO_PRESETS[selectedScenario].description }}
+                  />
                 )}
               </div>
 
@@ -203,6 +267,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Timeline year"
                     min={START_YEAR}
                     max={END_YEAR}
                     value={currentYear}
@@ -222,6 +287,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Retirement age"
                     min={60}
                     max={75}
                     value={params.retirementAge}
@@ -267,6 +333,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Fertility rate"
                     min={0.8}
                     max={2.5}
                     step={0.01}
@@ -294,6 +361,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Annual net migration"
                     min={-10000}
                     max={150000}
                     step={1000}
@@ -322,6 +390,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Mortality improvement"
                     min={0}
                     max={2.0}
                     step={0.1}
@@ -355,6 +424,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Workforce entry shift"
                     min={-3}
                     max={5}
                     step={1}
@@ -384,6 +454,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="range"
+                    aria-label="Unemployment adjustment"
                     min={-10}
                     max={15}
                     step={1}
@@ -418,73 +489,81 @@ const App: React.FC = () => {
              <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div ref={trendChartsRef} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="h-[220px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[250px] sm:p-4 xl:h-[200px]">
-               <TrendChart fullHistory={simulationData} currentYear={currentYear} />
+               {shouldRenderTrendCharts && (
+                 <TrendChart fullHistory={simulationData} currentYear={currentYear} />
+               )}
             </div>
             <div className="h-[230px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[260px] sm:p-4 xl:h-[200px]">
-               <EconomicTrendChart
-                 fullHistory={simulationData}
-                 currentYear={currentYear}
-                 chartType={economicChartType}
-                 onChartTypeChange={setEconomicChartType}
-               />
+               {shouldRenderTrendCharts && (
+                 <EconomicTrendChart
+                   fullHistory={simulationData}
+                   currentYear={currentYear}
+                   chartType={economicChartType}
+                   onChartTypeChange={setEconomicChartType}
+                 />
+               )}
             </div>
           </div>
 
         </div>
 
         {/* Right Column: Metrics & Economic Indicators (3 cols) */}
-        <div className="order-3 space-y-4 lg:order-3 lg:col-span-3">
-          {/* Key Metrics Cards */}
-          <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
-             <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
-                <div>
-                  <p className="flex items-center text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">
-                    Dependency Ratio
-                    <InfoTooltip content="Retirees per 100 working-age adults. Above 55% means serious strain on the social security system." />
-                  </p>
-                  <p className={`mt-1 text-lg font-bold lg:text-xl ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
-                    {currentData.oldAgeDependencyRatio.toFixed(1)}%
-                  </p>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
-                  <TrendingUp size={16} />
-                </div>
-             </div>
+        <div ref={secondaryContentRef} className="order-3 min-h-[620px] space-y-4 lg:order-3 lg:col-span-3">
+          {shouldRenderSecondaryContent && (
+            <>
+              {/* Key Metrics Cards */}
+              <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
+                 <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
+                    <div>
+                      <p className="flex items-center text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">
+                        Dependency Ratio
+                        <InfoTooltip content="Retirees per 100 working-age adults. Above 55% means serious strain on the social security system." />
+                      </p>
+                      <p className={`mt-1 text-lg font-bold lg:text-xl ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
+                        {currentData.oldAgeDependencyRatio.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
+                      <TrendingUp size={16} />
+                    </div>
+                 </div>
 
-             <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
-                <div>
-                  <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Total Population</p>
-                  <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
-                    {(currentData.totalPopulation / 1000000).toFixed(2)}M
-                  </p>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
-                  <Users size={16} />
-                </div>
-             </div>
+                 <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Total Population</p>
+                      <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
+                        {(currentData.totalPopulation / 1000000).toFixed(2)}M
+                      </p>
+                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
+                      <Users size={16} />
+                    </div>
+                 </div>
 
-             <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
-                <div>
-                  <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Median Age</p>
-                  <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
-                    {currentData.medianAge.toFixed(1)}y
-                  </p>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
-                  <span className="font-bold text-[10px] uppercase">Age</span>
-                </div>
-             </div>
-          </div>
+                 <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Median Age</p>
+                      <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
+                        {currentData.medianAge.toFixed(1)}y
+                      </p>
+                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center self-end rounded-full border border-slate-700 bg-slate-800 text-slate-400 lg:self-auto">
+                      <span className="font-bold text-[10px] uppercase">Age</span>
+                    </div>
+                 </div>
+              </div>
 
-          {/* Economic Metrics */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-3 text-amber-400 font-semibold border-b border-slate-800 pb-2 text-sm">
-              <TrendingUp size={16} /> Economic Indicators
-            </div>
-            <EconomicMetrics metrics={currentData.economic} />
-          </div>
+              {/* Economic Metrics */}
+              <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-3 text-amber-400 font-semibold border-b border-slate-800 pb-2 text-sm">
+                  <TrendingUp size={16} /> Economic Indicators
+                </div>
+                <EconomicMetrics metrics={currentData.economic} />
+              </div>
+            </>
+          )}
         </div>
 
       </main>

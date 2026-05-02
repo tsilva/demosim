@@ -7,7 +7,7 @@ const hasSize = (element: HTMLDivElement) => {
 
 const useChartContainerReady = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(true);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -16,7 +16,9 @@ const useChartContainerReady = () => {
     }
 
     const syncReadyState = () => {
-      setIsReady(hasSize(element));
+      if (hasSize(element)) {
+        setIsReady(true);
+      }
     };
 
     syncReadyState();

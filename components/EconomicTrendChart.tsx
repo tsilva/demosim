@@ -102,7 +102,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         </button>
       </div>
 
-      <h3 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
+      <h2 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
         {config.title} Evolution
         <InfoTooltip content={
           chartType === 'ssBalance'
@@ -111,7 +111,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
             ? "Total burden per worker: combined SS deficit and healthcare costs divided by workforce. Shows individual worker's share of supporting the system."
             : "Sustainability index (0-100): measures system viability. 100 = fully sustainable, 0 = total burden exceeds 40% of GDP (breaking point)."
         } />
-      </h3>
+      </h2>
 
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
         {isReady && (
@@ -145,6 +145,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
                 strokeWidth={3}
                 dot={false}
                 activeDot={{ r: 6, fill: config.stroke }}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>

@@ -23,10 +23,10 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
-       <h3 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
+       <h2 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
         Dependency Ratio Evolution
         <InfoTooltip content="Old-age dependency ratio over time: retirees per 100 working-age people. Higher values mean more strain on social security as fewer workers support more pensioners." />
-      </h3>
+      </h2>
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
         {isReady && (
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -58,6 +58,7 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
                 strokeWidth={3} 
                 dot={false}
                 activeDot={{ r: 6, fill: '#fbbf24' }}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
