@@ -86,11 +86,11 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   medium: {
     name: 'Medium',
-    description: 'Current trends normalize: TFR 1.41, migration trends from 143K to 50K/year',
+    description: 'Current trends normalize: TFR 1.41, migration trends from 138K to 50K/year',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
       fertilityRate: 1.41,
-      initialNetMigration: 143052,
+      initialNetMigration: 137718,
       netMigration: 50000,
       migrationConvergenceYear: 2050,
       mortalityImprovement: { male: 0.010, female: 0.008 },

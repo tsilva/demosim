@@ -78,7 +78,7 @@ Key functions:
 | Median age | 47.1 |
 | Life expectancy | 82.5 (M: 79.7, F: 85.2) |
 | TFR | 1.41 |
-| Calibrated net migration | +143,052 |
+| Calibrated net migration | +137,718 |
 
 ## Important Implementation Notes
 

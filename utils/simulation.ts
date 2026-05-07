@@ -12,6 +12,8 @@ const OPEN_AGE_MAX = 110;
 const OPEN_AGE_MORTALITY_GROWTH = 1.10;
 const BASE_YEAR = 2024;
 const ENTRY_SHIFT_MAX_AGE = 29;
+const BASE_RETIREMENT_AGE = economicParams.socialSecurity.retirementAge2024.years +
+                            economicParams.socialSecurity.retirementAge2024.months / 12;
 const NO_MORTALITY_IMPROVEMENT: MortalityImprovementRate = { male: 0, female: 0 };
 type Sex = 'male' | 'female';
 
@@ -237,6 +239,23 @@ const MIGRATION_WEIGHTS = {
   female: buildMigrationWeights(migrationData.ageProfile.female),
 };
 
+const estimateBaseYearBirthsWithMigration = (): number => {
+  const totalFemaleMigration = migrationData.netMigration2024 * (1 - migrationData.sexRatio.ratio);
+
+  return INITIAL_POPULATION.reduce((births, group) => {
+    if (group.age < 15 || group.age > 49) {
+      return births;
+    }
+
+    const migrationFemale = totalFemaleMigration * (MIGRATION_WEIGHTS.female[group.age] || 0);
+    const femaleExposure = Math.max(0, group.female + migrationFemale / 2);
+    return births + femaleExposure * (FERTILITY_BY_AGE[group.age] || 0);
+  }, 0);
+};
+
+const BASE_FERTILITY_EXPOSURE_CALIBRATION =
+  fertilityData.liveBirths2024 / estimateBaseYearBirthsWithMigration();
+
 const EMPLOYMENT_BASE_RATE_BY_AGE = (() => {
   const rates = Array(MAX_AGE + 1).fill(0);
 
@@ -302,16 +321,59 @@ const getPensionRecipientShare = (
   return Math.max(0, retiredShare - employmentRate);
 };
 
+const getLateCareerEmploymentRate = (age: number): number => {
+  if (age <= 64) {
+    return EMPLOYMENT_BASE_RATE_BY_AGE[Math.min(age, MAX_AGE)] || 0;
+  }
+
+  if (age <= 69) {
+    return EMPLOYMENT_BASE_RATE_BY_AGE[60] || 0;
+  }
+
+  return EMPLOYMENT_BASE_RATE_BY_AGE[65] || 0;
+};
+
+const getRetireeEmploymentRate = (age: number): number => {
+  if (age <= 69) {
+    return EMPLOYMENT_BASE_RATE_BY_AGE[65] || 0;
+  }
+
+  return EMPLOYMENT_BASE_RATE_BY_AGE[70] || 0;
+};
+
+const getRetirementAdjustedEmploymentRate = (
+  age: number,
+  baseRate: number,
+  retirementAge: number
+): number => {
+  const baseWorkingShare = getWorkingShare(age, BASE_RETIREMENT_AGE);
+  const scenarioWorkingShare = getWorkingShare(age, retirementAge);
+  const workingShareDelta = scenarioWorkingShare - baseWorkingShare;
+
+  if (Math.abs(workingShareDelta) < 0.000001) {
+    return baseRate;
+  }
+
+  const employmentGap = getLateCareerEmploymentRate(age) - getRetireeEmploymentRate(age);
+  return Math.max(0, Math.min(1, baseRate + workingShareDelta * employmentGap));
+};
+
 const buildEmploymentRates = (
   workforceEntryAgeShift: number,
-  unemploymentAdjustment: number
+  unemploymentAdjustment: number,
+  retirementAge: number = BASE_RETIREMENT_AGE
 ) => {
   return Array.from({ length: MAX_AGE + 1 }, (_, age) => {
     const effectiveAge = age <= ENTRY_SHIFT_MAX_AGE
       ? Math.max(15, Math.min(ENTRY_SHIFT_MAX_AGE, age - workforceEntryAgeShift))
       : age;
     const baseRate = EMPLOYMENT_BASE_RATE_BY_AGE[effectiveAge] || 0;
-    const adjustedRate = baseRate * (1 - unemploymentAdjustment);
+    const retirementAdjustedRate = getRetirementAdjustedEmploymentRate(
+      age,
+      baseRate,
+      retirementAge
+    );
+    const adjustedRate = retirementAdjustedRate * (1 - unemploymentAdjustment);
     return Math.max(0, Math.min(1, adjustedRate));
   });
 };
@@ -363,9 +425,8 @@ const capNegativeMigrationToAvailablePopulation = (
 const BASE_OFFICIAL_SS_BALANCE = economicParams.socialSecurity.officialBudgetBalance2024;
 
 const BASE_OTHER_SS_EXPENDITURE_PER_CAPITA = (() => {
-  const retirementAge = economicParams.socialSecurity.retirementAge2024.years +
-                        economicParams.socialSecurity.retirementAge2024.months / 12;
-  const employmentRates = buildEmploymentRates(0, 0);
+  const retirementAge = BASE_RETIREMENT_AGE;
+  const employmentRates = buildEmploymentRates(0, 0, retirementAge);
   const baseAvgSalary = economicParams.wages.averageGrossSalary2024 *
                         economicParams.wages.annualMultiplier;
   const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
@@ -393,7 +454,8 @@ const BASE_OTHER_SS_EXPENDITURE_PER_CAPITA = (() => {
 })();
 
 /**
- * Get employment rate for a given age, adjusted for workforce entry shift and unemployment
+ * Get employment rate for a given age, adjusted for retirement policy,
+ * workforce entry shift, and unemployment
  *
  * @param age - The actual age of the person
  * @param workforceEntryAgeShift - Years to shift workforce entry (positive = later entry due to more education)
@@ -408,7 +470,8 @@ const BASE_OTHER_SS_EXPENDITURE_PER_CAPITA = (() => {
 const getEmploymentRate = (
   age: number,
   workforceEntryAgeShift: number = 0,
-  unemploymentAdjustment: number = 0
+  unemploymentAdjustment: number = 0,
+  retirementAge: number = BASE_RETIREMENT_AGE
 ): number => {
   // Apply workforce entry age shift only to early-career ages. Retirement-age
   // employment is modeled independently and should not move with entry timing.
@@ -416,10 +479,15 @@ const getEmploymentRate = (
     ? Math.max(15, Math.min(ENTRY_SHIFT_MAX_AGE, age - workforceEntryAgeShift))
     : age;
   const baseRate = EMPLOYMENT_BASE_RATE_BY_AGE[effectiveAge] || 0;
+  const retirementAdjustedRate = getRetirementAdjustedEmploymentRate(
+    age,
+    baseRate,
+    retirementAge
+  );
 
   // Apply unemployment adjustment: higher unemployment = lower employment rate
   // Clamp the result between 0 and the base rate (can't have negative employment)
-  const adjustedRate = baseRate * (1 - unemploymentAdjustment);
+  const adjustedRate = retirementAdjustedRate * (1 - unemploymentAdjustment);
   return Math.max(0, Math.min(1, adjustedRate));
 };
 
@@ -438,7 +506,7 @@ const getHealthcareMultiplier = (age: number): number => {
  * Formula Documentation:
  *
  * ACTUAL WORKFORCE:
- *   Sum over all ages: population[age] * employmentRate[age]
+ *   Sum over all ages: population[age] * retirement-adjusted employmentRate[age]
  *
  * SS CONTRIBUTIONS:
  *   actualWorkforce * avgGrossSalary * ssContributionRate * inflationFactor
@@ -474,7 +542,7 @@ const calculateEconomicMetrics = (
   yearsFromBase: number,
   workforceEntryAgeShift: number,
   unemploymentAdjustment: number,
-  employmentRates = buildEmploymentRates(workforceEntryAgeShift, unemploymentAdjustment)
+  employmentRates = buildEmploymentRates(workforceEntryAgeShift, unemploymentAdjustment, retirementAge)
 ): EconomicMetrics => {
   // Constants from economicParams.json
   const ssRate = economicParams.socialSecurity.contributionRates.total; // 0.3475
@@ -636,8 +704,13 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
   let currentPop = expandInitialPopulation();
   const results: YearData[] = [];
   const baseYear = BASE_YEAR;
-  const fertilityScale = params.fertilityRate / fertilityData.totalFertilityRate;
-  const employmentRates = buildEmploymentRates(params.workforceEntryAgeShift, params.unemploymentAdjustment);
+  const fertilityScale = (params.fertilityRate / fertilityData.totalFertilityRate) *
+                         BASE_FERTILITY_EXPOSURE_CALIBRATION;
+  const employmentRates = buildEmploymentRates(
+    params.workforceEntryAgeShift,
+    params.unemploymentAdjustment,
+    params.retirementAge
+  );
 
   for (let year = startYear; year <= endYear; year++) {
     const yearsFromBase = year - baseYear;
