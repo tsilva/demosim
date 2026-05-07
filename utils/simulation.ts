@@ -148,6 +148,35 @@ const HEALTHCARE_MULTIPLIER_BY_AGE = Array.from({ length: MAX_AGE + 1 }, (_, age
   return multipliers['85+'];
 });
 
+const BASE_HEALTHCARE_WEIGHTED_MULTIPLIER = INITIAL_POPULATION.reduce(
+  (weightedTotal, group) => weightedTotal + group.total * HEALTHCARE_MULTIPLIER_BY_AGE[group.age],
+  0
+) / INITIAL_POPULATION.reduce((total, group) => total + group.total, 0);
+
+const getWorkingShare = (age: number, retirementAge: number): number => {
+  if (age < 15) {
+    return 0;
+  }
+
+  if (age + 1 <= retirementAge) {
+    return 1;
+  }
+
+  if (age >= retirementAge) {
+    return 0;
+  }
+
+  return retirementAge - age;
+};
+
+const getRetiredShare = (age: number, retirementAge: number): number => {
+  if (age < 15) {
+    return 0;
+  }
+
+  return 1 - getWorkingShare(age, retirementAge);
+};
+
 const buildEmploymentRates = (
   workforceEntryAgeShift: number,
   unemploymentAdjustment: number
@@ -219,9 +248,10 @@ const getHealthcareMultiplier = (age: number): number => {
  *   - avgPension = 8,120 EUR/year (580 * 14 months)
  *
  * HEALTHCARE COSTS:
- *   Sum over all ages: population[age] * baseCost * ageMultiplier[age] * inflationFactor
+ *   Sum over all ages: population[age] * normalizedBaseCost * ageMultiplier[age] * inflationFactor
  *   Where:
- *   - baseCost = 2,730.81 EUR/year per capita
+ *   - official per-capita cost = 2,730.81 EUR/year
+ *   - normalizedBaseCost = official per-capita cost / 2024 population-weighted age multiplier
  *   - ageMultiplier: 0.6 (0-19), 1.0 (20-64), 2.5 (65-74), 4.0 (75-84), 6.0 (85+)
  *
  * SUSTAINABILITY INDEX:
@@ -246,7 +276,8 @@ const calculateEconomicMetrics = (
                          economicParams.wages.annualMultiplier; // 580 * 14 = 8120
   // Healthcare spending is stored directly in EUR per inhabitant
   const usdToEur = economicParams.healthcare.usdToEur;
-  const baseHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur;
+  const allAgeHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur;
+  const baseHealthcareCost = allAgeHealthcareCost / BASE_HEALTHCARE_WEIGHTED_MULTIPLIER;
   const wageGrowth = economicParams.productivity.annualGrowthRate; // 0.015
   const healthcareInflation = economicParams.healthcare.annualInflation;
 
@@ -260,29 +291,32 @@ const calculateEconomicMetrics = (
   let workingAgePop = 0;
 
   for (const group of population) {
-    if (group.age >= 15 && group.age < retirementAge) {
-      workingAgePop += group.total;
-      actualWorkforce += group.total * employmentRates[Math.min(group.age, MAX_AGE)];
-    }
-    // Include post-retirement workers (65-69 have 15%, 70+ have 4%)
-    if (group.age >= retirementAge) {
+    const workingShare = getWorkingShare(group.age, retirementAge);
+    workingAgePop += group.total * workingShare;
+
+    // Include all employed adults, including post-retirement workers.
+    if (group.age >= 15) {
       actualWorkforce += group.total * employmentRates[Math.min(group.age, MAX_AGE)];
     }
   }
 
   actualWorkforce = Math.round(actualWorkforce);
+  workingAgePop = Math.round(workingAgePop);
 
   // Calculate retired population and actual pensioners (excluding those still working)
   let retiredPop = 0;
   let actualPensioners = 0;
   for (const group of population) {
-    if (group.age >= retirementAge) {
-      retiredPop += group.total;
+    const retiredShare = getRetiredShare(group.age, retirementAge);
+    if (retiredShare > 0) {
+      const retiredGroupPop = group.total * retiredShare;
+      retiredPop += retiredGroupPop;
       // Subtract those still working from pension recipients
       const employmentRate = employmentRates[Math.min(group.age, MAX_AGE)];
-      actualPensioners += group.total * (1 - employmentRate);
+      actualPensioners += retiredGroupPop * (1 - employmentRate);
     }
   }
+  retiredPop = Math.round(retiredPop);
   actualPensioners = Math.round(actualPensioners);
 
   // Social Security calculations
@@ -406,21 +440,20 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     }
 
     // 1. Calculate Statistics for current year
-    const workingAgeLimit = params.retirementAge;
-
     let childPop = 0;
     let workingPop = 0;
     let retiredPop = 0;
     for (const group of currentPop) {
       if (group.age < 15) {
         childPop += group.total;
-      } else if (group.age < workingAgeLimit) {
-        workingPop += group.total;
       } else {
-        retiredPop += group.total;
+        workingPop += group.total * getWorkingShare(group.age, params.retirementAge);
+        retiredPop += group.total * getRetiredShare(group.age, params.retirementAge);
       }
     }
-    const totalPop = childPop + workingPop + retiredPop;
+    workingPop = Math.round(workingPop);
+    retiredPop = Math.round(retiredPop);
+    const totalPop = currentPop.reduce((sum, group) => sum + group.total, 0);
 
     // Calculate Median Age with interpolation for precision
     let cumulative = 0;
@@ -464,54 +497,11 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     // 2. Evolve population for next year using cohort-component method
     const nextPop: AgeGroup[] = [];
 
-    // Calculate Births using Age-Specific Fertility Rates (ASFR)
-    let totalBirths = 0;
-    for (const group of currentPop) {
-      if (group.age >= 15 && group.age <= 49) {
-        // Get ASFR for this age, adjusted by user's TFR parameter
-        const baseASFR = FERTILITY_BY_AGE[group.age];
-        // Scale ASFR proportionally to the official 2024 base TFR
-        const scaledASFR = baseASFR * fertilityScale;
-        totalBirths += group.female * scaledASFR;
-      }
-    }
-
-    const births = Math.round(totalBirths);
-
-    // Sex ratio at birth: ~105 males per 100 females
-    const sexRatio = fertilityData.sexRatioAtBirth.ratio;
-    const maleBirths = Math.floor(births * (sexRatio / (1 + sexRatio)));
-    const femaleBirths = births - maleBirths;
-    const newbornMaleDeaths = Math.round(
-      maleBirths * maleHalfYearQxByAge[0]
-    );
-    const newbornFemaleDeaths = Math.round(
-      femaleBirths * femaleHalfYearQxByAge[0]
-    );
-    const survivingMaleBirths = Math.max(0, maleBirths - newbornMaleDeaths);
-    const survivingFemaleBirths = Math.max(0, femaleBirths - newbornFemaleDeaths);
-
-    // Age 0 cohort (newborns)
-    nextPop.push({
-      age: 0,
-      male: survivingMaleBirths,
-      female: survivingFemaleBirths,
-      total: survivingMaleBirths + survivingFemaleBirths
-    });
-
-    // Track migration carry-over to prevent rounding losses
+    // Pre-calculate all migration amounts by age group before fertility and mortality.
+    // Births use half-year exposure from net migrant women of reproductive age.
     let maleMigrationCarry = 0;
     let femaleMigrationCarry = 0;
-
-    // Track existing age 100 population for aggregation
-    let age100Male = 0;
-    let age100Female = 0;
-
-    // Track total deaths and migration for population balance validation
-    let totalDeaths = newbornMaleDeaths + newbornFemaleDeaths;
     let totalMigrationDistributed = 0;
-
-    // Pre-calculate all migration amounts by age group before mortality
     const maleMigrationByAge = Array(MAX_AGE).fill(0);
     const femaleMigrationByAge = Array(MAX_AGE).fill(0);
     for (const group of currentPop) {
@@ -543,6 +533,50 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       femaleMigrationByAge[99] += finalFemaleMigration;
       totalMigrationDistributed += finalMaleMigration + finalFemaleMigration;
     }
+
+    // Calculate Births using Age-Specific Fertility Rates (ASFR)
+    let totalBirths = 0;
+    for (const group of currentPop) {
+      if (group.age >= 15 && group.age <= 49) {
+        // Get ASFR for this age, adjusted by user's TFR parameter
+        const baseASFR = FERTILITY_BY_AGE[group.age];
+        // Scale ASFR proportionally to the official 2024 base TFR
+        const scaledASFR = baseASFR * fertilityScale;
+        const migrationFemale = femaleMigrationByAge[group.age] || 0;
+        const femaleExposure = Math.max(0, group.female + migrationFemale / 2);
+        totalBirths += femaleExposure * scaledASFR;
+      }
+    }
+
+    const births = Math.round(totalBirths);
+
+    // Sex ratio at birth: ~105 males per 100 females
+    const sexRatio = fertilityData.sexRatioAtBirth.ratio;
+    const maleBirths = Math.floor(births * (sexRatio / (1 + sexRatio)));
+    const femaleBirths = births - maleBirths;
+    const newbornMaleDeaths = Math.round(
+      maleBirths * maleHalfYearQxByAge[0]
+    );
+    const newbornFemaleDeaths = Math.round(
+      femaleBirths * femaleHalfYearQxByAge[0]
+    );
+    const survivingMaleBirths = Math.max(0, maleBirths - newbornMaleDeaths);
+    const survivingFemaleBirths = Math.max(0, femaleBirths - newbornFemaleDeaths);
+
+    // Age 0 cohort (newborns)
+    nextPop.push({
+      age: 0,
+      male: survivingMaleBirths,
+      female: survivingFemaleBirths,
+      total: survivingMaleBirths + survivingFemaleBirths
+    });
+
+    // Track existing age 100 population for aggregation
+    let age100Male = 0;
+    let age100Female = 0;
+
+    // Track total deaths and migration for population balance validation
+    let totalDeaths = newbornMaleDeaths + newbornFemaleDeaths;
 
     // Age existing population with mortality and migration
     for (let i = 0; i < currentPop.length; i++) {

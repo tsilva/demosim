@@ -20,6 +20,21 @@ const END_YEAR = 2100;
 const DEFAULT_SCENARIO: ScenarioType = 'medium';
 let hasTrackedInitialPageView = false;
 
+const formatRetirementAge = (age: number): string => {
+  const years = Math.floor(age);
+  const months = Math.round((age - years) * 12);
+
+  if (months === 0) {
+    return `${years}y`;
+  }
+
+  if (months === 12) {
+    return `${years + 1}y`;
+  }
+
+  return `${years}y ${months}m`;
+};
+
 const cloneParams = (source: SimulationParams): SimulationParams => ({
   ...source,
   mortalityImprovement: { ...source.mortalityImprovement },
@@ -283,13 +298,14 @@ const App: React.FC = () => {
                 <div>
                   <label className="mb-1 flex justify-between text-xs text-slate-400">
                     <span>Retirement Age</span>
-                    <span className="font-mono font-bold text-amber-400">{params.retirementAge}y</span>
+                    <span className="font-mono font-bold text-amber-400">{formatRetirementAge(params.retirementAge)}</span>
                   </label>
                   <input
                     type="range"
                     aria-label="Retirement age"
                     min={60}
                     max={75}
+                    step={1 / 12}
                     value={params.retirementAge}
                     onChange={(e) => handleParamChange('retirementAge', Number(e.target.value))}
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-amber-500"

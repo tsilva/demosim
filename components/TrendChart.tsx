@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
 import { YearData } from '../types';
@@ -19,7 +18,7 @@ interface Props {
 }
 
 const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
-  const { containerRef, isReady } = useChartContainerReady();
+  const { containerRef, isReady, dimensions } = useChartContainerReady();
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
@@ -29,39 +28,39 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
       </h2>
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
         {isReady && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <LineChart
-              data={fullHistory}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-              <XAxis 
-                dataKey="year" 
-                tick={{ fill: '#64748b', fontSize: 10 }} 
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                tick={{ fill: '#64748b', fontSize: 10 }} 
-                domain={['auto', 'auto']}
-              />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
-                itemStyle={{ color: '#fbbf24' }}
-                labelStyle={{ color: '#94a3b8' }}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, 'Ratio']}
-              />
-              <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
-              <Line 
-                type="monotone" 
-                dataKey="oldAgeDependencyRatio" 
-                stroke="#fbbf24" 
-                strokeWidth={3} 
-                dot={false}
-                activeDot={{ r: 6, fill: '#fbbf24' }}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            width={dimensions.width}
+            height={dimensions.height}
+            data={fullHistory}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+            <XAxis
+              dataKey="year"
+              tick={{ fill: '#64748b', fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fill: '#64748b', fontSize: 10 }}
+              domain={['auto', 'auto']}
+            />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
+              itemStyle={{ color: '#fbbf24' }}
+              labelStyle={{ color: '#94a3b8' }}
+              formatter={(value: number) => [`${value.toFixed(1)}%`, 'Ratio']}
+            />
+            <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
+            <Line
+              type="monotone"
+              dataKey="oldAgeDependencyRatio"
+              stroke="#fbbf24"
+              strokeWidth={3}
+              dot={false}
+              activeDot={{ r: 6, fill: '#fbbf24' }}
+              isAnimationActive={false}
+            />
+          </LineChart>
         )}
       </div>
       <p className="mt-2 text-center text-[11px] text-slate-500 sm:text-xs">

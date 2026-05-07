@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 
-const hasSize = (element: HTMLDivElement) => {
+const getElementSize = (element: HTMLDivElement) => {
   const { width, height } = element.getBoundingClientRect();
-  return width > 0 && height > 0;
+  return {
+    width: Math.floor(width),
+    height: Math.floor(height),
+  };
 };
 
 const useChartContainerReady = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isReady, setIsReady] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const element = containerRef.current;
@@ -16,8 +20,16 @@ const useChartContainerReady = () => {
     }
 
     const syncReadyState = () => {
-      if (hasSize(element)) {
+      const nextDimensions = getElementSize(element);
+      if (nextDimensions.width > 0 && nextDimensions.height > 0) {
+        setDimensions((currentDimensions) => (
+          currentDimensions.width === nextDimensions.width && currentDimensions.height === nextDimensions.height
+            ? currentDimensions
+            : nextDimensions
+        ));
         setIsReady(true);
+      } else {
+        setIsReady(false);
       }
     };
 
@@ -33,7 +45,7 @@ const useChartContainerReady = () => {
     };
   }, []);
 
-  return { containerRef, isReady };
+  return { containerRef, isReady, dimensions };
 };
 
 export default useChartContainerReady;

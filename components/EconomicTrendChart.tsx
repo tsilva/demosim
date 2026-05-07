@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
 import { YearData } from '../types';
@@ -23,7 +22,7 @@ interface Props {
 }
 
 const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartType, onChartTypeChange }) => {
-  const { containerRef, isReady } = useChartContainerReady();
+  const { containerRef, isReady, dimensions } = useChartContainerReady();
 
   const chartData = fullHistory.map(d => ({
     year: d.year,
@@ -115,40 +114,40 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
 
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
         {isReady && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <LineChart
-              data={chartData}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-              <XAxis
-                dataKey="year"
-                tick={{ fill: '#64748b', fontSize: 10 }}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fill: '#64748b', fontSize: 10 }}
-                domain={config.yDomain || ['auto', 'auto']}
-              />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
-                itemStyle={{ color: config.stroke }}
-                labelStyle={{ color: '#94a3b8' }}
-                formatter={(value: number) => [config.formatter(value), config.title]}
-              />
-              <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
-              {config.showZeroLine && <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />}
-              <Line
-                type="monotone"
-                dataKey={config.dataKey}
-                stroke={config.stroke}
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ r: 6, fill: config.stroke }}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            width={dimensions.width}
+            height={dimensions.height}
+            data={chartData}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+            <XAxis
+              dataKey="year"
+              tick={{ fill: '#64748b', fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fill: '#64748b', fontSize: 10 }}
+              domain={config.yDomain || ['auto', 'auto']}
+            />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
+              itemStyle={{ color: config.stroke }}
+              labelStyle={{ color: '#94a3b8' }}
+              formatter={(value: number) => [config.formatter(value), config.title]}
+            />
+            <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
+            {config.showZeroLine && <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />}
+            <Line
+              type="monotone"
+              dataKey={config.dataKey}
+              stroke={config.stroke}
+              strokeWidth={3}
+              dot={false}
+              activeDot={{ r: 6, fill: config.stroke }}
+              isAnimationActive={false}
+            />
+          </LineChart>
         )}
       </div>
     </div>

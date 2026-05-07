@@ -12,8 +12,9 @@ type PopulationStatus = 'child' | 'working' | 'retired';
 
 interface ChartEntry {
   age: number;
+  male: number;
+  female: number;
   total: number;
-  half: number;
   status: PopulationStatus;
 }
 
@@ -58,11 +59,12 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
   const chartData = useMemo<ChartEntry[]>(() => {
     return data.population.map((group) => {
       const total = group.male + group.female;
-      const half = total / 2;
       let status: PopulationStatus;
 
       if (group.age < 15) {
         status = 'child';
+      } else if (group.age + 1 <= retirementAge) {
+        status = 'working';
       } else if (group.age >= retirementAge) {
         status = 'retired';
       } else {
@@ -71,15 +73,16 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
 
       return {
         age: group.age,
+        male: group.male,
+        female: group.female,
         total,
-        half,
         status,
       };
     });
   }, [data.population, retirementAge]);
 
-  const maxHalfPopulation = Math.max(...chartData.map(entry => entry.half), 1);
-  const scaleX = (value: number) => (value / maxHalfPopulation) * (PLOT_HALF_WIDTH * 0.9);
+  const maxSidePopulation = Math.max(...chartData.flatMap(entry => [entry.male, entry.female]), 1);
+  const scaleX = (value: number) => (value / maxSidePopulation) * (PLOT_HALF_WIDTH * 0.9);
   const barHeight = Math.max(1.25, (PLOT_BOTTOM - PLOT_TOP) / 124);
   const medianAgeY = medianAge !== undefined ? getAgeY(Math.round(medianAge)) : null;
 
@@ -109,7 +112,8 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
           ))}
 
           {chartData.map((entry) => {
-            const width = scaleX(entry.half);
+            const maleWidth = scaleX(entry.male);
+            const femaleWidth = scaleX(entry.female);
             const y = getAgeY(entry.age) - barHeight / 2;
             const fill = getBarColor(entry.status);
 
@@ -124,11 +128,18 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
                   });
                 }}
               >
-                <rect x={CENTER_X - width} y={y} width={width} height={barHeight} fill={fill} />
-                <rect x={CENTER_X} y={y} width={width} height={barHeight} fill={fill} />
+                <rect x={CENTER_X - maleWidth} y={y} width={maleWidth} height={barHeight} fill={fill} />
+                <rect x={CENTER_X} y={y} width={femaleWidth} height={barHeight} fill={fill} opacity={0.82} />
               </g>
             );
           })}
+
+          <text x={CENTER_X - 10} y={PLOT_BOTTOM + 14} textAnchor="end" fill="#94a3b8" fontSize={9}>
+            Male
+          </text>
+          <text x={CENTER_X + 10} y={PLOT_BOTTOM + 14} textAnchor="start" fill="#94a3b8" fontSize={9}>
+            Female
+          </text>
 
           <line
             x1={PLOT_LEFT}
@@ -174,6 +185,8 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
           >
             <p className="font-bold text-slate-200">Age: {tooltip.entry.age}</p>
             <p className="text-slate-300">Population: {tooltip.entry.total.toLocaleString()}</p>
+            <p className="text-slate-400">Male: {tooltip.entry.male.toLocaleString()}</p>
+            <p className="text-slate-400">Female: {tooltip.entry.female.toLocaleString()}</p>
             <p className="mt-1 text-slate-400">Status: {getStatusLabel(tooltip.entry.status)}</p>
           </div>
         )}
