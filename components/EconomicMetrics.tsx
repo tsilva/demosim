@@ -26,7 +26,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Actual Workforce
-          <InfoTooltip content="Employed workers contributing to social security. Excludes unemployed and those outside working age." />
+          <InfoTooltip content="Employed workers contributing to social security, including employed people above retirement age." />
         </p>
         <p className="text-xl font-bold text-emerald-400">
           {(metrics.actualWorkforce / 1000000).toFixed(2)}M
@@ -40,7 +40,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           SS Balance
-          <InfoTooltip content="Social Security revenue minus pension payments. Negative values indicate a deficit that must be covered by other means." />
+          <InfoTooltip content="Social Security revenue minus pension payments and calibrated non-pension expenditure. Negative values indicate a deficit that must be covered by other means." />
         </p>
         <p className={`text-xl font-bold ${metrics.ssBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {metrics.ssBalance >= 0 ? '+' : ''}{formatCurrency(metrics.ssBalance)}

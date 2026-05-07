@@ -34,7 +34,9 @@
     },
     "socialSupportIndex2024": 509.26,
     "minimumPension2024": 308.30,
-    "averagePension2024": 580.00
+    "averagePension2024": 580.00,
+    "officialBudgetBalance2024": 5595000000,
+    "officialBudgetBalanceSource": "Conselho das Finanças Públicas report 03/2025: 2024 Social Security surplus excluding ESF/FEAD"
   },
   "employment": {
     "description": "Employment rates by age group (proportion of population employed)",

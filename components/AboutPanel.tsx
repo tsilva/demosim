@@ -35,7 +35,7 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">Fertility:</span> Eurostat 2024 age-specific rates (TFR 1.41)
                 </li>
                 <li>
-                  <span className="text-slate-300">Migration:</span> 2024 profile calibrated to 2025 population (+143.1K)
+                  <span className="text-slate-300">Migration:</span> 2024 profile with scenario-specific convergence paths
                 </li>
                 <li>
                   <span className="text-slate-300">Healthcare:</span> Eurostat SHA 2024 + age-cost multipliers
@@ -57,7 +57,7 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">SS Contributions:</span> Workforce × salary × 34.75%
                 </li>
                 <li>
-                  <span className="text-slate-300">Pensions:</span> Actual retirees × average pension
+                  <span className="text-slate-300">SS Balance:</span> Contributions minus pensions and calibrated non-pension spending
                 </li>
                 <li>
                   <span className="text-slate-300">Sustainability:</span> 100 × (1 - burden / (40% GDP))
@@ -78,7 +78,7 @@ const AboutPanel: React.FC = () => {
                 <li>Educational tool, not a forecast</li>
                 <li>No modeling of policy changes, economic shocks, or pandemics</li>
                 <li>Constant real wages and pension rules assumed</li>
-                <li>Migration age profile fixed over time</li>
+                <li>Migration age profile fixed over time; annual totals follow scenario paths</li>
                 <li>Healthcare costs simplified to age multipliers</li>
               </ul>
             </div>

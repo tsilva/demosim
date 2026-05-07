@@ -370,14 +370,14 @@ const App: React.FC = () => {
                 <div>
                   <label className="flex justify-between text-xs text-slate-400 mb-1">
                     <span className="flex items-center">
-                      Annual Net Migration
-                      <InfoTooltip content="Annual immigrants minus emigrants. Positive values add to population, typically younger working-age adults." />
+                      Long-run Net Migration
+                      <InfoTooltip content="Annual immigrants minus emigrants after scenario convergence. Presets can start from a different 2024-calibrated value and trend toward this long-run level." />
                     </span>
                     <span className="text-cyan-400 font-mono font-bold">{params.netMigration >= 0 ? '+' : ''}{params.netMigration.toLocaleString()}</span>
                   </label>
                   <input
                     type="range"
-                    aria-label="Annual net migration"
+                    aria-label="Long-run net migration"
                     min={-10000}
                     max={150000}
                     step={1000}
@@ -389,7 +389,12 @@ const App: React.FC = () => {
                     }`}
                   />
                   {!isCustomScenario && (
-                    <p className="text-[10px] text-amber-500/70 mt-1 italic">Scenario locked</p>
+                    <p className="text-[10px] text-amber-500/70 mt-1 italic">
+                      Scenario locked
+                      {params.initialNetMigration !== undefined && params.initialNetMigration !== params.netMigration
+                        ? ` • starts ${params.initialNetMigration >= 0 ? '+' : ''}${params.initialNetMigration.toLocaleString()}`
+                        : ''}
+                    </p>
                   )}
                 </div>
 
@@ -535,7 +540,7 @@ const App: React.FC = () => {
                     <div>
                       <p className="flex items-center text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">
                         Dependency Ratio
-                        <InfoTooltip content="Retirees per 100 working-age adults. Above 55% means serious strain on the social security system." />
+                        <InfoTooltip content="Standard old-age dependency ratio: people aged 65+ per 100 people aged 15-64." />
                       </p>
                       <p className={`mt-1 text-lg font-bold lg:text-xl ${currentData.oldAgeDependencyRatio > 55 ? 'text-rose-400' : 'text-slate-200'}`}>
                         {currentData.oldAgeDependencyRatio.toFixed(1)}%

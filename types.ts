@@ -33,7 +33,7 @@ export interface YearData {
   workingAgePop: number;
   retiredPop: number;
   childPop: number;
-  oldAgeDependencyRatio: number; // (Retired / Working) * 100
+  oldAgeDependencyRatio: number; // Standard definition: age 65+ / age 15-64 * 100
   medianAge: number;
   economic: EconomicMetrics;
 }
@@ -50,7 +50,9 @@ export interface MortalityImprovementRate {
 export interface SimulationParams {
   retirementAge: number;
   fertilityRate: number; // Children per woman
-  netMigration: number; // Net annual migration
+  netMigration: number; // Long-run annual net migration after convergence
+  initialNetMigration?: number; // Initial projection-year net migration, when different from long-run trend
+  migrationConvergenceYear?: number; // Year when migration reaches the long-run annual level
   mortalityImprovement: MortalityImprovementRate; // Configurable mortality improvement rates
   // Economic parameters
   workforceEntryAgeShift: number; // Years to shift workforce entry (0=current, +2=2 years later due to more education)
@@ -70,11 +72,13 @@ const PORTUGAL_RETIREMENT_AGE_2024 = 66 + 4 / 12;
 export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioDefinition> = {
   low: {
     name: 'Low',
-    description: 'Economic stagnation: TFR 1.20, migration 50K/year, +3% unemployment',
+    description: 'Economic stagnation: TFR 1.20, migration trends toward 20K/year, +3% unemployment',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
       fertilityRate: 1.20,
-      netMigration: 50000,
+      initialNetMigration: 50000,
+      netMigration: 20000,
+      migrationConvergenceYear: 2050,
       mortalityImprovement: { male: 0.005, female: 0.004 },
       workforceEntryAgeShift: 1,    // People enter workforce 1 year later (more education/fewer jobs)
       unemploymentAdjustment: 0.03  // 3% higher unemployment (economic stagnation)
@@ -82,11 +86,13 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   medium: {
     name: 'Medium',
-    description: 'Current trends continue: TFR 1.41, calibrated net migration 143K/year (matches 2025 stock)',
+    description: 'Current trends normalize: TFR 1.41, migration trends from 143K to 50K/year',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
       fertilityRate: 1.41,
-      netMigration: 143052,
+      initialNetMigration: 143052,
+      netMigration: 50000,
+      migrationConvergenceYear: 2050,
       mortalityImprovement: { male: 0.010, female: 0.008 },
       workforceEntryAgeShift: 0,    // Current workforce entry patterns
       unemploymentAdjustment: 0     // Current unemployment levels
@@ -94,11 +100,13 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   high: {
     name: 'High',
-    description: 'Optimistic growth: TFR 1.77, migration 150K/year, -2% unemployment',
+    description: 'Optimistic growth: TFR 1.77, migration trends toward 75K/year, -2% unemployment',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
       fertilityRate: 1.77,
-      netMigration: 150000,
+      initialNetMigration: 150000,
+      netMigration: 75000,
+      migrationConvergenceYear: 2050,
       mortalityImprovement: { male: 0.015, female: 0.012 },
       workforceEntryAgeShift: -1,   // Earlier workforce entry (better vocational training)
       unemploymentAdjustment: -0.02 // 2% lower unemployment (economic growth)
