@@ -37,7 +37,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         return {
           title: 'SS Balance',
           dataKey: 'ssBalance',
-          formatter: (v: number) => `${v.toFixed(1)}B EUR`,
+          formatter: (v: number) => `${v.toFixed(1)}B 2024 EUR`,
           stroke: '#fbbf24',
           showZeroLine: true,
           yDomain: undefined as [number, number] | undefined,
@@ -46,7 +46,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         return {
           title: 'Burden/Worker',
           dataKey: 'burden',
-          formatter: (v: number) => `${v.toLocaleString()} EUR`,
+          formatter: (v: number) => `${v.toLocaleString()} 2024 EUR`,
           stroke: '#f43f5e',
           showZeroLine: false,
           yDomain: undefined as [number, number] | undefined,
@@ -105,10 +105,10 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         {config.title} Evolution
         <InfoTooltip content={
           chartType === 'ssBalance'
-            ? "Social Security balance: contributions minus pension payments. Negative values indicate deficit requiring government subsidies or debt."
+            ? "Inflation-adjusted 2024 EUR. Social Security balance: contributions minus pension payments. Negative values indicate deficit requiring government subsidies or debt."
             : chartType === 'burden'
-            ? "Total burden per worker: combined SS deficit and healthcare costs divided by workforce. Shows individual worker's share of supporting the system."
-            : "Sustainability index (0-100): measures system viability. 100 = fully sustainable, 0 = total burden exceeds 40% of GDP (breaking point)."
+            ? "Inflation-adjusted 2024 EUR. Total burden per worker: combined SS deficit and healthcare costs divided by workforce. Shows individual worker's share of supporting the system."
+            : "Sustainability index (0-100): compares inflation-adjusted total burden with inflation-adjusted GDP capacity. 100 = fully sustainable, 0 = total burden exceeds 40% of GDP."
         } />
       </h2>
 

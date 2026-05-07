@@ -1,12 +1,16 @@
 // Eurostat demo_gind (2024) plus a residual age/sex profile inferred from
 // official 2024-01-01 and 2025-01-01 populations, 2024 births, and 2024 mortality.
 // The profile is intentionally stored as raw weights; simulation.ts normalizes it.
+// Ages are end-of-transition ages: a residual observed at age 35 in the
+// 2025-01-01 stock is applied to the cohort that was age 34 at 2024-01-01.
 // The headline migration value is the official INE 2024 net migration component.
-// simulation.ts applies a separate mortality component calibration so the first
-// projection step reconciles births, deaths, migration, and population stock.
+// simulation.ts applies a separate base-year stock reconciliation so the first
+// projection step can preserve life-expectancy qx and still reconcile official
+// births, deaths, migration, and population stock.
 
 export const migrationData = {
   netMigration2024: 143641,
+  ageBasis: 'endOfTransition' as const,
   ageProfile: {
     male: [
       { ageGroup: '0-4', weight: 2162 },

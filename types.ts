@@ -11,18 +11,18 @@ export interface EconomicMetrics {
   laborUtilizationRate: number;      // Total workers (incl. post-retirement) / working-age pop
 
   // Social Security
-  totalSSContributions: number;      // EUR/year from workers
-  totalPensionPayments: number;      // EUR/year to retirees
-  ssBalance: number;                 // Contributions - Payments
-  ssBalancePerWorker: number;        // EUR/year per worker
+  totalSSContributions: number;      // 2024 EUR/year from workers
+  totalPensionPayments: number;      // 2024 EUR/year to retirees
+  ssBalance: number;                 // Contributions - Payments, 2024 EUR/year
+  ssBalancePerWorker: number;        // 2024 EUR/year per worker
 
   // Healthcare
-  totalHealthcareCost: number;       // EUR/year for population (public + private)
-  publicHealthcareCost: number;      // EUR/year public share only (used in fiscal burden)
-  healthcareCostPerWorker: number;   // EUR/year per worker (total)
+  totalHealthcareCost: number;       // 2024 EUR/year for population (public + private)
+  publicHealthcareCost: number;      // 2024 EUR/year public share only (used in fiscal burden)
+  healthcareCostPerWorker: number;   // 2024 EUR/year per worker (total)
 
   // Combined
-  totalBurdenPerWorker: number;      // SS deficit + healthcare per worker
+  totalBurdenPerWorker: number;      // SS deficit + healthcare per worker, 2024 EUR/year
   sustainabilityIndex: number;       // 0-100 (100 = sustainable)
 }
 

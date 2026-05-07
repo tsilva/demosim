@@ -85,6 +85,12 @@
     },
     "note": "Age 65+ spends approximately 4x more than working-age population"
   },
+  "inflation": {
+    "baseYear": 2024,
+    "annualRate": 0.02,
+    "currency": "EUR",
+    "description": "Consumer inflation used to convert projected nominal monetary flows into constant 2024 euros"
+  },
   "productivity": {
     "gdpPerWorker2024": 54582.87,
     "gdpPerCapita2024": 27200,

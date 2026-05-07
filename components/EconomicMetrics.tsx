@@ -40,13 +40,13 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           SS Balance
-          <InfoTooltip content="Social Security revenue minus pension payments and calibrated non-pension expenditure. Negative values indicate a deficit that must be covered by other means." />
+          <InfoTooltip content="Inflation-adjusted 2024 EUR. Social Security revenue minus pension payments and calibrated non-pension expenditure. Negative values indicate a deficit that must be covered by other means." />
         </p>
         <p className={`text-xl font-bold ${metrics.ssBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {metrics.ssBalance >= 0 ? '+' : ''}{formatCurrency(metrics.ssBalance)}
         </p>
         <p className="text-[10px] text-slate-500">
-          {formatCurrency(metrics.ssBalancePerWorker)}/worker
+          {formatCurrency(metrics.ssBalancePerWorker)} 2024 EUR/worker
         </p>
       </div>
 
@@ -54,13 +54,13 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Healthcare Cost
-          <InfoTooltip content="Total healthcare spending based on population age structure. Public share (62%) counts toward fiscal burden. Elderly care costs 6x more than youth." />
+          <InfoTooltip content="Inflation-adjusted 2024 EUR. Total healthcare spending based on population age structure. Public share (62%) counts toward fiscal burden. Elderly care costs 6x more than youth." />
         </p>
         <p className="text-xl font-bold text-cyan-400">
           {formatCurrency(metrics.publicHealthcareCost)}
         </p>
         <p className="text-[10px] text-slate-500">
-          {formatCurrency(metrics.totalHealthcareCost)} total ({formatCurrency(metrics.healthcareCostPerWorker)}/worker)
+          {formatCurrency(metrics.totalHealthcareCost)} total ({formatCurrency(metrics.healthcareCostPerWorker)} 2024 EUR/worker)
         </p>
       </div>
 
@@ -68,7 +68,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Burden per Worker
-          <InfoTooltip content="Annual cost each worker must cover for SS deficit and public healthcare (62% of total). Higher values reduce disposable income and competitiveness." />
+          <InfoTooltip content="Inflation-adjusted 2024 EUR. Annual cost each worker must cover for SS deficit and public healthcare (62% of total). Higher values reduce disposable income and competitiveness." />
         </p>
         <p className={`text-xl font-bold ${
           metrics.totalBurdenPerWorker > 20000 ? 'text-rose-400' : 'text-amber-400'
@@ -76,7 +76,7 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
           {formatCurrency(metrics.totalBurdenPerWorker)}
         </p>
         <p className="text-[10px] text-slate-500">
-          EUR/year (SS deficit + healthcare)
+          2024 EUR/year (SS deficit + healthcare)
         </p>
       </div>
 

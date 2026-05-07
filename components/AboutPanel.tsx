@@ -63,6 +63,9 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">Sustainability:</span> 100 × (1 - burden / (40% GDP))
                 </li>
                 <li>
+                  <span className="text-slate-300">Currency:</span> All economic outputs in inflation-adjusted 2024 EUR
+                </li>
+                <li>
                   <span className="text-slate-300">Age 100+:</span> Internally split through 110+
                 </li>
               </ul>
@@ -77,9 +80,9 @@ const AboutPanel: React.FC = () => {
               <ul className="space-y-2 text-slate-400 text-xs">
                 <li>Educational tool, not a forecast</li>
                 <li>No modeling of policy changes, economic shocks, or pandemics</li>
-                <li>Constant real wages and pension rules assumed</li>
+                <li>Real wage growth follows the productivity assumption; pension rules remain constant</li>
                 <li>Migration age profile fixed over time; annual totals follow scenario paths</li>
-                <li>Healthcare costs simplified to age multipliers</li>
+                <li>Healthcare costs simplified to age multipliers and real cost growth</li>
               </ul>
             </div>
           </div>
