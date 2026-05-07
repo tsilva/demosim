@@ -24,7 +24,7 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
     <div className="flex h-full w-full min-w-0 flex-col">
        <h2 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
         Dependency Ratio Evolution
-        <InfoTooltip content="Old-age dependency ratio over time: retirees per 100 working-age people. Higher values mean more strain on social security as fewer workers support more pensioners." />
+        <InfoTooltip content="Standard old-age dependency ratio over time: people aged 65+ per 100 people aged 15-64. Higher values indicate more age-related fiscal pressure." />
       </h2>
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
         {isReady && (
@@ -64,7 +64,7 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
         )}
       </div>
       <p className="mt-2 text-center text-[11px] text-slate-500 sm:text-xs">
-        % of Retirees per Working Age Person
+        People aged 65+ per 100 aged 15-64
       </p>
     </div>
   );

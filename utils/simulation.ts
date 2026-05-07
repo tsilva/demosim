@@ -10,6 +10,7 @@ import economicParams from '../data/economicParams.json';
 const MAX_AGE = 100;
 const OPEN_AGE_MAX = 110;
 const OPEN_AGE_MORTALITY_GROWTH = 1.10;
+const BASE_YEAR = 2024;
 const ENTRY_SHIFT_MAX_AGE = 29;
 const NO_MORTALITY_IMPROVEMENT: MortalityImprovementRate = { male: 0, female: 0 };
 type Sex = 'male' | 'female';
@@ -287,6 +288,20 @@ const getRetiredShare = (age: number, retirementAge: number): number => {
   return 1 - getWorkingShare(age, retirementAge);
 };
 
+const getPensionRecipientShare = (
+  age: number,
+  retirementAge: number,
+  employmentRate: number
+): number => {
+  const retiredShare = getRetiredShare(age, retirementAge);
+  if (retiredShare <= 0) {
+    return 0;
+  }
+
+  // Employed retirees are excluded from pension payments per the model notes.
+  return Math.max(0, retiredShare - employmentRate);
+};
+
 const buildEmploymentRates = (
   workforceEntryAgeShift: number,
   unemploymentAdjustment: number
@@ -317,6 +332,34 @@ const getAnnualNetMigration = (
   return initialNetMigration + (params.netMigration - initialNetMigration) * progress;
 };
 
+const capNegativeMigrationToAvailablePopulation = (
+  migration: number,
+  population: number,
+  annualQx: number
+): number => {
+  if (migration >= 0 || population <= 0) {
+    return migration;
+  }
+
+  const requestedEmigration = Math.min(-migration, Math.floor(population));
+  let low = 0;
+  let high = requestedEmigration;
+
+  while (low < high) {
+    const candidateEmigration = Math.ceil((low + high) / 2);
+    const residentExposure = Math.max(0, population - candidateEmigration / 2);
+    const residentDeaths = Math.round(residentExposure * annualQx);
+
+    if (candidateEmigration + residentDeaths <= population) {
+      low = candidateEmigration;
+    } else {
+      high = candidateEmigration - 1;
+    }
+  }
+
+  return -low;
+};
+
 const BASE_OFFICIAL_SS_BALANCE = economicParams.socialSecurity.officialBudgetBalance2024;
 
 const BASE_OTHER_SS_EXPENDITURE_PER_CAPITA = (() => {
@@ -338,7 +381,8 @@ const BASE_OTHER_SS_EXPENDITURE_PER_CAPITA = (() => {
     if (group.age >= 15) {
       actualWorkforce += group.total * employmentRates[Math.min(group.age, MAX_AGE)];
     }
-    pensioners += group.total * getRetiredShare(group.age, retirementAge);
+    const employmentRate = employmentRates[Math.min(group.age, MAX_AGE)];
+    pensioners += group.total * getPensionRecipientShare(group.age, retirementAge, employmentRate);
   }
 
   const totalSSContributions = Math.round(actualWorkforce) * baseAvgSalary * ssRate;
@@ -404,7 +448,7 @@ const getHealthcareMultiplier = (age: number): number => {
  *   - inflationFactor = (1 + wageGrowth)^yearsFromBase
  *
  * SOCIAL SECURITY EXPENDITURE:
- *   retiredPop * avgPension * inflationFactor
+ *   pensionRecipients * avgPension * inflationFactor
  *   + calibrated non-pension expenditure residual
  *   Where:
  *   - avgPension = 8,120 EUR/year (580 * 14 months)
@@ -468,16 +512,20 @@ const calculateEconomicMetrics = (
   workingAgePop = Math.round(workingAgePop);
 
   // Calculate retired population and pension recipients.
-  // Retirement-age workers can still receive pensions, so employment is not
-  // subtracted from pension payments.
+  // Employed retirees are excluded from pension payments.
   let retiredPop = 0;
   let actualPensioners = 0;
   for (const group of population) {
     const retiredShare = getRetiredShare(group.age, retirementAge);
     if (retiredShare > 0) {
       const retiredGroupPop = group.total * retiredShare;
+      const pensionRecipientShare = getPensionRecipientShare(
+        group.age,
+        retirementAge,
+        employmentRates[Math.min(group.age, MAX_AGE)]
+      );
       retiredPop += retiredGroupPop;
-      actualPensioners += retiredGroupPop;
+      actualPensioners += group.total * pensionRecipientShare;
     }
   }
   retiredPop = Math.round(retiredPop);
@@ -563,6 +611,12 @@ const calculateEconomicMetrics = (
  */
 export const runSimulation = (startYear: number, endYear: number, params: SimulationParams): YearData[] => {
   // Parameter validation
+  if (startYear !== BASE_YEAR) {
+    throw new Error(`Invalid start year: ${startYear}. This model is calibrated to start in ${BASE_YEAR}.`);
+  }
+  if (endYear < startYear) {
+    throw new Error(`Invalid end year: ${endYear}. Must be greater than or equal to ${startYear}.`);
+  }
   if (params.fertilityRate < 0 || params.fertilityRate > 10) {
     throw new Error(`Invalid fertility rate: ${params.fertilityRate}. Must be between 0 and 10.`);
   }
@@ -581,7 +635,7 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
   let currentPop = expandInitialPopulation();
   const results: YearData[] = [];
-  const baseYear = startYear;
+  const baseYear = BASE_YEAR;
   const fertilityScale = params.fertilityRate / fertilityData.totalFertilityRate;
   const employmentRates = buildEmploymentRates(params.workforceEntryAgeShift, params.unemploymentAdjustment);
 
@@ -704,7 +758,6 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
       maleMigrationByAge[group.age] = migrationMale;
       femaleMigrationByAge[group.age] = migrationFemale;
-      totalMigrationDistributed += migrationMale + migrationFemale;
     }
 
     // Apply remaining migration carry-over to age 99 group (last regular cohort)
@@ -713,7 +766,26 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     if ((finalMaleMigration !== 0 || finalFemaleMigration !== 0)) {
       maleMigrationByAge[99] += finalMaleMigration;
       femaleMigrationByAge[99] += finalFemaleMigration;
-      totalMigrationDistributed += finalMaleMigration + finalFemaleMigration;
+    }
+
+    for (const group of currentPop) {
+      if (group.age >= MAX_AGE) {
+        continue;
+      }
+
+      const cappedMaleMigration = capNegativeMigrationToAvailablePopulation(
+        maleMigrationByAge[group.age],
+        group.male,
+        maleQxByAge[group.age]
+      );
+      const cappedFemaleMigration = capNegativeMigrationToAvailablePopulation(
+        femaleMigrationByAge[group.age],
+        group.female,
+        femaleQxByAge[group.age]
+      );
+
+      maleMigrationByAge[group.age] = cappedMaleMigration;
+      femaleMigrationByAge[group.age] = cappedFemaleMigration;
     }
 
     // Calculate Births using Age-Specific Fertility Rates (ASFR)
@@ -790,8 +862,13 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
       totalDeaths += residentDeathsMale + residentDeathsFemale + migrantDeathsMale + migrantDeathsFemale;
 
-      const survivingMale = Math.max(0, group.male - residentDeathsMale + migrationMale - migrantDeathsMale);
-      const survivingFemale = Math.max(0, group.female - residentDeathsFemale + migrationFemale - migrantDeathsFemale);
+      const rawSurvivingMale = group.male - residentDeathsMale + migrationMale - migrantDeathsMale;
+      const rawSurvivingFemale = group.female - residentDeathsFemale + migrationFemale - migrantDeathsFemale;
+      const survivingMale = Math.max(0, rawSurvivingMale);
+      const survivingFemale = Math.max(0, rawSurvivingFemale);
+      const appliedMigrationMale = migrationMale + (survivingMale - rawSurvivingMale);
+      const appliedMigrationFemale = migrationFemale + (survivingFemale - rawSurvivingFemale);
+      totalMigrationDistributed += appliedMigrationMale + appliedMigrationFemale;
 
       // Age 109 survivors and existing 110+ survivors go to the 110+ aggregate.
       if (group.age >= OPEN_AGE_MAX - 1) {
