@@ -49,7 +49,7 @@ pnpm preview   # alias for pnpm start
 | Median age | 47.1 |
 | Life expectancy | 82.5 overall, 79.7 male, 85.2 female |
 | Total fertility rate | 1.41 |
-| Calibrated net migration | +137,718 |
+| 2024 net migration | +143,641 |
 
 ## Architecture
 

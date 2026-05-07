@@ -1,11 +1,12 @@
 // Eurostat demo_gind (2024) plus a residual age/sex profile inferred from
 // official 2024-01-01 and 2025-01-01 populations, 2024 births, and 2024 mortality.
 // The profile is intentionally stored as raw weights; simulation.ts normalizes it.
-// The headline migration value is model-calibrated so the first projection step
-// reconciles to the observed 2025 population stock after integer cohort rounding.
+// The headline migration value is the official INE 2024 net migration component.
+// simulation.ts applies a separate mortality component calibration so the first
+// projection step reconciles births, deaths, migration, and population stock.
 
 export const migrationData = {
-  netMigration2024: 137718,
+  netMigration2024: 143641,
   ageProfile: {
     male: [
       { ageGroup: '0-4', weight: 2162 },
@@ -47,6 +48,6 @@ export const migrationData = {
     ]
   },
   sexRatio: {
-    ratio: 0.499015, // Male share of calibrated net migration
+    ratio: 0.499015, // Male share of inferred net migration profile
   }
 };

@@ -9,6 +9,7 @@ export const lifeTables = {
     female: 85.2,
     total: 82.5
   },
+  deaths2024: 118374,
   infantMortalityRate: 3.1,
   // qx = probability of dying within one year at age x
   qx: {

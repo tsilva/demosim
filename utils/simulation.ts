@@ -14,7 +14,6 @@ const BASE_YEAR = 2024;
 const ENTRY_SHIFT_MAX_AGE = 29;
 const BASE_RETIREMENT_AGE = economicParams.socialSecurity.retirementAge2024.years +
                             economicParams.socialSecurity.retirementAge2024.months / 12;
-const NO_MORTALITY_IMPROVEMENT: MortalityImprovementRate = { male: 0, female: 0 };
 type Sex = 'male' | 'female';
 
 const INITIAL_POPULATION: AgeGroup[] = populationData.data.map(row => ({
@@ -51,7 +50,7 @@ export const generateInitialData = (): AgeGroup[] => {
  * @param yearsFromBase - Years from projection start (for mortality improvement)
  * @param mortalityImprovement - Configurable improvement rates from SimulationParams
  */
-const getOpenAgeBaseQx = (age: number, sex: Sex): number => {
+const getRawOpenAgeBaseQx = (age: number, sex: Sex): number => {
   const qxArray = sex === 'male' ? lifeTables.qx.male : lifeTables.qx.female;
   if (age <= MAX_AGE) {
     return qxArray[age];
@@ -61,6 +60,14 @@ const getOpenAgeBaseQx = (age: number, sex: Sex): number => {
 };
 
 const clampMortalityRate = (qx: number): number => Math.max(0, Math.min(qx, 0.999999));
+
+const getScaledOpenAgeBaseQx = (age: number, sex: Sex, scale: number): number => {
+  return clampMortalityRate(getRawOpenAgeBaseQx(age, sex) * scale);
+};
+
+const getOpenAgeBaseQx = (age: number, sex: Sex): number => {
+  return getScaledOpenAgeBaseQx(age, sex, BASE_MORTALITY_COMPONENT_CALIBRATION);
+};
 
 const getMortalityRate = (
   age: number,
@@ -97,13 +104,17 @@ const getAgeAdjustedMortalityImprovement = (age: number, baseRate: number): numb
   return Math.max(-0.05, Math.min(0.05, adjustedRate));
 };
 
-const distributeOpenAgePopulation = (total: number, sex: Sex): number[] => {
+const distributeOpenAgePopulation = (
+  total: number,
+  sex: Sex,
+  mortalityScale = BASE_MORTALITY_COMPONENT_CALIBRATION
+): number[] => {
   const weights: number[] = [];
   let survivalWeight = 1;
 
   for (let age = MAX_AGE; age <= OPEN_AGE_MAX; age++) {
     if (age > MAX_AGE) {
-      survivalWeight *= 1 - getMortalityRate(age - 1, sex, 0, NO_MORTALITY_IMPROVEMENT);
+      survivalWeight *= 1 - getScaledOpenAgeBaseQx(age - 1, sex, mortalityScale);
     }
     weights.push(survivalWeight);
   }
@@ -126,7 +137,9 @@ const distributeOpenAgePopulation = (total: number, sex: Sex): number[] => {
   return distribution;
 };
 
-const expandInitialPopulation = (): AgeGroup[] => {
+const expandInitialPopulation = (
+  mortalityScale = BASE_MORTALITY_COMPONENT_CALIBRATION
+): AgeGroup[] => {
   const expanded: AgeGroup[] = [];
 
   for (const group of INITIAL_POPULATION) {
@@ -135,8 +148,8 @@ const expandInitialPopulation = (): AgeGroup[] => {
       continue;
     }
 
-    const maleDistribution = distributeOpenAgePopulation(group.male, 'male');
-    const femaleDistribution = distributeOpenAgePopulation(group.female, 'female');
+    const maleDistribution = distributeOpenAgePopulation(group.male, 'male', mortalityScale);
+    const femaleDistribution = distributeOpenAgePopulation(group.female, 'female', mortalityScale);
     for (let age = MAX_AGE; age <= OPEN_AGE_MAX; age++) {
       const index = age - MAX_AGE;
       const male = maleDistribution[index];
@@ -238,6 +251,70 @@ const MIGRATION_WEIGHTS = {
   male: buildMigrationWeights(migrationData.ageProfile.male),
   female: buildMigrationWeights(migrationData.ageProfile.female),
 };
+
+const estimateBaseYearDeathsWithMigration = (mortalityScale: number): number => {
+  const totalMaleMigration = migrationData.netMigration2024 * migrationData.sexRatio.ratio;
+  const totalFemaleMigration = migrationData.netMigration2024 * (1 - migrationData.sexRatio.ratio);
+  const population = expandInitialPopulation(mortalityScale);
+
+  let totalDeaths = 0;
+  for (const group of population) {
+    const migrationMale = group.age < MAX_AGE
+      ? totalMaleMigration * (MIGRATION_WEIGHTS.male[group.age] || 0)
+      : 0;
+    const migrationFemale = group.age < MAX_AGE
+      ? totalFemaleMigration * (MIGRATION_WEIGHTS.female[group.age] || 0)
+      : 0;
+    const maleQx = getScaledOpenAgeBaseQx(group.age, 'male', mortalityScale);
+    const femaleQx = getScaledOpenAgeBaseQx(group.age, 'female', mortalityScale);
+    const residentMaleExposure = Math.max(0, group.male + Math.min(0, migrationMale) / 2);
+    const residentFemaleExposure = Math.max(0, group.female + Math.min(0, migrationFemale) / 2);
+    const migrantDeathsMale = migrationMale > 0
+      ? Math.round(migrationMale * getHalfYearMortalityRate(maleQx))
+      : 0;
+    const migrantDeathsFemale = migrationFemale > 0
+      ? Math.round(migrationFemale * getHalfYearMortalityRate(femaleQx))
+      : 0;
+
+    totalDeaths += Math.round(residentMaleExposure * maleQx) +
+                   Math.round(residentFemaleExposure * femaleQx) +
+                   migrantDeathsMale +
+                   migrantDeathsFemale;
+  }
+
+  const sexRatio = fertilityData.sexRatioAtBirth.ratio;
+  const maleBirths = Math.floor(
+    fertilityData.liveBirths2024 * (sexRatio / (1 + sexRatio))
+  );
+  const femaleBirths = fertilityData.liveBirths2024 - maleBirths;
+  totalDeaths += Math.round(
+    maleBirths * getHalfYearMortalityRate(getScaledOpenAgeBaseQx(0, 'male', mortalityScale))
+  );
+  totalDeaths += Math.round(
+    femaleBirths * getHalfYearMortalityRate(getScaledOpenAgeBaseQx(0, 'female', mortalityScale))
+  );
+
+  return totalDeaths;
+};
+
+const findBaseMortalityComponentCalibration = (): number => {
+  let low = 0.5;
+  let high = 1.5;
+
+  for (let i = 0; i < 40; i++) {
+    const mid = (low + high) / 2;
+    const estimatedDeaths = estimateBaseYearDeathsWithMigration(mid);
+    if (estimatedDeaths < lifeTables.deaths2024) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return (low + high) / 2;
+};
+
+const BASE_MORTALITY_COMPONENT_CALIBRATION = findBaseMortalityComponentCalibration();
 
 const estimateBaseYearBirthsWithMigration = (): number => {
   const totalFemaleMigration = migrationData.netMigration2024 * (1 - migrationData.sexRatio.ratio);
@@ -640,7 +717,7 @@ const calculateEconomicMetrics = (
   //
   // Formula: sustainabilityIndex = 100 * (1 - totalBurden / (GDP * maxBurdenThreshold))
   // Where maxBurdenThreshold = 0.40 (40% of GDP is considered the breaking point)
-  const gdpPerWorker = economicParams.productivity.gdpPerWorker2024; // 42,500 EUR
+  const gdpPerWorker = economicParams.productivity.gdpPerWorker2024; // 54,582.87 EUR
   const gdpProxy = actualWorkforce * gdpPerWorker * wageInflationFactor;
   const totalFiscalBurden = ssDeficit + publicHealthcareCost;
 
