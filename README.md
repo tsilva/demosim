@@ -38,7 +38,7 @@ pnpm preview   # alias for pnpm start
 - The app requires JavaScript in the browser.
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID` is optional. When present, the app loads Google Analytics and tracks page views plus simulator interactions.
 - Runtime data lives in `data/`: 2024 population by age and sex, life tables, fertility rates, migration profile, and economic assumptions.
-- The simulation keeps age `100+` as an aggregate cohort and logs a console warning if the population balance error exceeds 100 people in a projected year.
+- The simulation displays age `100+` as an aggregate cohort, but internally ages it through a `110+` open bucket and logs a console warning if the population balance error exceeds 500 people in a projected year.
 - Deployment metadata is included for Vercel as a Next.js app.
 
 ## Data Baseline
@@ -49,7 +49,7 @@ pnpm preview   # alias for pnpm start
 | Median age | 47.1 |
 | Life expectancy | 82.5 overall, 79.7 male, 85.2 female |
 | Total fertility rate | 1.41 |
-| Corrected net migration | +143,641 |
+| Calibrated net migration | +143,052 |
 
 ## Architecture
 

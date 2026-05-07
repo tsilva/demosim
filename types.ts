@@ -82,11 +82,11 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
   },
   medium: {
     name: 'Medium',
-    description: 'Current trends continue: TFR 1.41, corrected net migration 144K/year (Eurostat 2024 baseline)',
+    description: 'Current trends continue: TFR 1.41, calibrated net migration 143K/year (matches 2025 stock)',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
       fertilityRate: 1.41,
-      netMigration: 143641,
+      netMigration: 143052,
       mortalityImprovement: { male: 0.010, female: 0.008 },
       workforceEntryAgeShift: 0,    // Current workforce entry patterns
       unemploymentAdjustment: 0     // Current unemployment levels

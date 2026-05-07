@@ -35,7 +35,7 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">Fertility:</span> Eurostat 2024 age-specific rates (TFR 1.41)
                 </li>
                 <li>
-                  <span className="text-slate-300">Migration:</span> Eurostat 2024 corrected net migration (+143.6K)
+                  <span className="text-slate-300">Migration:</span> 2024 profile calibrated to 2025 population (+143.1K)
                 </li>
                 <li>
                   <span className="text-slate-300">Healthcare:</span> Eurostat SHA 2024 + age-cost multipliers
@@ -63,7 +63,7 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">Sustainability:</span> 100 × (1 - burden / (40% GDP))
                 </li>
                 <li>
-                  <span className="text-slate-300">Age 100+:</span> Aggregated with high mortality
+                  <span className="text-slate-300">Age 100+:</span> Internally split through 110+
                 </li>
               </ul>
             </div>

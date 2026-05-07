@@ -8,6 +8,11 @@ import { migrationData } from '../data/migrationProfile';
 import economicParams from '../data/economicParams.json';
 
 const MAX_AGE = 100;
+const OPEN_AGE_MAX = 110;
+const OPEN_AGE_MORTALITY_GROWTH = 1.10;
+const ENTRY_SHIFT_MAX_AGE = 29;
+const NO_MORTALITY_IMPROVEMENT: MortalityImprovementRate = { male: 0, female: 0 };
+type Sex = 'male' | 'female';
 
 const INITIAL_POPULATION: AgeGroup[] = populationData.data.map(row => ({
   age: row.age,
@@ -43,26 +48,116 @@ export const generateInitialData = (): AgeGroup[] => {
  * @param yearsFromBase - Years from projection start (for mortality improvement)
  * @param mortalityImprovement - Configurable improvement rates from SimulationParams
  */
+const getOpenAgeBaseQx = (age: number, sex: Sex): number => {
+  const qxArray = sex === 'male' ? lifeTables.qx.male : lifeTables.qx.female;
+  if (age <= MAX_AGE) {
+    return qxArray[age];
+  }
+
+  return qxArray[MAX_AGE] * Math.pow(OPEN_AGE_MORTALITY_GROWTH, age - MAX_AGE);
+};
+
+const clampMortalityRate = (qx: number): number => Math.max(0, Math.min(qx, 0.999999));
+
 const getMortalityRate = (
   age: number,
-  sex: 'male' | 'female',
+  sex: Sex,
   yearsFromBase: number,
   mortalityImprovement: MortalityImprovementRate
 ): number => {
-  const qxArray = sex === 'male' ? lifeTables.qx.male : lifeTables.qx.female;
   const improvementRate = sex === 'male'
     ? mortalityImprovement.male
     : mortalityImprovement.female;
 
-  // Get base qx, capped at age 100+
-  const baseQx = qxArray[Math.min(age, 100)];
+  const baseQx = getOpenAgeBaseQx(age, sex);
 
   // Apply mortality improvement over time (mortality decreases as medicine improves)
   // This models increasing life expectancy over the projection period.
-  // Keep qx below 1.0 so the open-ended age 100+ group can persist realistically.
+  // Keep qx below 1.0 so open-ended age groups can persist realistically.
   const improvedQx = baseQx * Math.pow(1 - improvementRate, yearsFromBase);
 
-  return Math.max(0, Math.min(improvedQx, 0.999999));
+  return clampMortalityRate(improvedQx);
+};
+
+const distributeOpenAgePopulation = (total: number, sex: Sex): number[] => {
+  const weights: number[] = [];
+  let survivalWeight = 1;
+
+  for (let age = MAX_AGE; age <= OPEN_AGE_MAX; age++) {
+    if (age > MAX_AGE) {
+      survivalWeight *= 1 - getMortalityRate(age - 1, sex, 0, NO_MORTALITY_IMPROVEMENT);
+    }
+    weights.push(survivalWeight);
+  }
+
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const distribution: number[] = [];
+  let allocated = 0;
+
+  for (let i = 0; i < weights.length; i++) {
+    if (i === weights.length - 1) {
+      distribution.push(total - allocated);
+      break;
+    }
+
+    const value = Math.round((total * weights[i]) / totalWeight);
+    distribution.push(value);
+    allocated += value;
+  }
+
+  return distribution;
+};
+
+const expandInitialPopulation = (): AgeGroup[] => {
+  const expanded: AgeGroup[] = [];
+
+  for (const group of INITIAL_POPULATION) {
+    if (group.age < MAX_AGE) {
+      expanded.push({ ...group });
+      continue;
+    }
+
+    const maleDistribution = distributeOpenAgePopulation(group.male, 'male');
+    const femaleDistribution = distributeOpenAgePopulation(group.female, 'female');
+    for (let age = MAX_AGE; age <= OPEN_AGE_MAX; age++) {
+      const index = age - MAX_AGE;
+      const male = maleDistribution[index];
+      const female = femaleDistribution[index];
+      expanded.push({
+        age,
+        male,
+        female,
+        total: male + female,
+      });
+    }
+  }
+
+  return expanded;
+};
+
+const collapseOpenAgePopulation = (population: AgeGroup[]): AgeGroup[] => {
+  const collapsed: AgeGroup[] = [];
+  let openAgeMale = 0;
+  let openAgeFemale = 0;
+
+  for (const group of population) {
+    if (group.age < MAX_AGE) {
+      collapsed.push({ ...group });
+      continue;
+    }
+
+    openAgeMale += group.male;
+    openAgeFemale += group.female;
+  }
+
+  collapsed.push({
+    age: MAX_AGE,
+    male: openAgeMale,
+    female: openAgeFemale,
+    total: openAgeMale + openAgeFemale,
+  });
+
+  return collapsed;
 };
 
 /**
@@ -182,7 +277,9 @@ const buildEmploymentRates = (
   unemploymentAdjustment: number
 ) => {
   return Array.from({ length: MAX_AGE + 1 }, (_, age) => {
-    const effectiveAge = Math.max(15, Math.min(MAX_AGE, age - workforceEntryAgeShift));
+    const effectiveAge = age <= ENTRY_SHIFT_MAX_AGE
+      ? Math.max(15, Math.min(ENTRY_SHIFT_MAX_AGE, age - workforceEntryAgeShift))
+      : age;
     const baseRate = EMPLOYMENT_BASE_RATE_BY_AGE[effectiveAge] || 0;
     const adjustedRate = baseRate * (1 - unemploymentAdjustment);
     return Math.max(0, Math.min(1, adjustedRate));
@@ -207,9 +304,11 @@ const getEmploymentRate = (
   workforceEntryAgeShift: number = 0,
   unemploymentAdjustment: number = 0
 ): number => {
-  // Apply workforce entry age shift: look up rate for (age - shift)
-  // Positive shift = later entry, so a 25yo with shift=+2 uses rate for age 23
-  const effectiveAge = Math.max(15, Math.min(MAX_AGE, age - workforceEntryAgeShift));
+  // Apply workforce entry age shift only to early-career ages. Retirement-age
+  // employment is modeled independently and should not move with entry timing.
+  const effectiveAge = age <= ENTRY_SHIFT_MAX_AGE
+    ? Math.max(15, Math.min(ENTRY_SHIFT_MAX_AGE, age - workforceEntryAgeShift))
+    : age;
   const baseRate = EMPLOYMENT_BASE_RATE_BY_AGE[effectiveAge] || 0;
 
   // Apply unemployment adjustment: higher unemployment = lower employment rate
@@ -413,7 +512,7 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     throw new Error(`Invalid female mortality improvement: ${params.mortalityImprovement.female}. Must be between -0.05 and 0.05.`);
   }
 
-  let currentPop = generateInitialData();
+  let currentPop = expandInitialPopulation();
   const results: YearData[] = [];
   const baseYear = startYear;
   const fertilityScale = params.fertilityRate / fertilityData.totalFertilityRate;
@@ -425,14 +524,14 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     const yearsFromBase = year - baseYear;
     const maleMortalityFactor = Math.pow(1 - params.mortalityImprovement.male, yearsFromBase);
     const femaleMortalityFactor = Math.pow(1 - params.mortalityImprovement.female, yearsFromBase);
-    const maleQxByAge = Array(MAX_AGE + 1);
-    const femaleQxByAge = Array(MAX_AGE + 1);
-    const maleHalfYearQxByAge = Array(MAX_AGE + 1);
-    const femaleHalfYearQxByAge = Array(MAX_AGE + 1);
+    const maleQxByAge = Array(OPEN_AGE_MAX + 1);
+    const femaleQxByAge = Array(OPEN_AGE_MAX + 1);
+    const maleHalfYearQxByAge = Array(OPEN_AGE_MAX + 1);
+    const femaleHalfYearQxByAge = Array(OPEN_AGE_MAX + 1);
 
-    for (let age = 0; age <= MAX_AGE; age++) {
-      const maleQx = Math.max(0, Math.min(lifeTables.qx.male[age] * maleMortalityFactor, 0.999999));
-      const femaleQx = Math.max(0, Math.min(lifeTables.qx.female[age] * femaleMortalityFactor, 0.999999));
+    for (let age = 0; age <= OPEN_AGE_MAX; age++) {
+      const maleQx = clampMortalityRate(getOpenAgeBaseQx(age, 'male') * maleMortalityFactor);
+      const femaleQx = clampMortalityRate(getOpenAgeBaseQx(age, 'female') * femaleMortalityFactor);
       maleQxByAge[age] = maleQx;
       femaleQxByAge[age] = femaleQx;
       maleHalfYearQxByAge[age] = getHalfYearMortalityRate(maleQx);
@@ -484,7 +583,7 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
     results.push({
       year,
-      population: currentPop.map(group => ({ ...group })),
+      population: collapseOpenAgePopulation(currentPop),
       totalPopulation: totalPop,
       workingAgePop: workingPop,
       retiredPop: retiredPop,
@@ -571,9 +670,9 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       total: survivingMaleBirths + survivingFemaleBirths
     });
 
-    // Track existing age 100 population for aggregation
-    let age100Male = 0;
-    let age100Female = 0;
+    // Track existing 110+ population for the internal open-ended bucket.
+    let openAgeMale = 0;
+    let openAgeFemale = 0;
 
     // Track total deaths and migration for population balance validation
     let totalDeaths = newbornMaleDeaths + newbornFemaleDeaths;
@@ -582,21 +681,9 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     for (let i = 0; i < currentPop.length; i++) {
       const group = currentPop[i];
 
-      // Handle age 100+ separately: no direct migration, keep survivors in the open-ended bucket
-      if (group.age >= 100) {
-        const qx100M = maleQxByAge[100];
-        const qx100F = femaleQxByAge[100];
-        const deathsMale100 = Math.round(group.male * qx100M);
-        const deathsFemale100 = Math.round(group.female * qx100F);
-        totalDeaths += deathsMale100 + deathsFemale100;
-        age100Male += Math.max(0, group.male - deathsMale100);
-        age100Female += Math.max(0, group.female - deathsFemale100);
-        continue;
-      }
-
       // Get migration for this age group
-      const migrationMale = maleMigrationByAge[group.age];
-      const migrationFemale = femaleMigrationByAge[group.age];
+      const migrationMale = group.age < MAX_AGE ? maleMigrationByAge[group.age] : 0;
+      const migrationFemale = group.age < MAX_AGE ? femaleMigrationByAge[group.age] : 0;
 
       const maleQx = maleQxByAge[group.age];
       const femaleQx = femaleQxByAge[group.age];
@@ -623,10 +710,10 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       const survivingMale = Math.max(0, group.male - residentDeathsMale + migrationMale - migrantDeathsMale);
       const survivingFemale = Math.max(0, group.female - residentDeathsFemale + migrationFemale - migrantDeathsFemale);
 
-      // Age 99 survivors go to age 100 aggregate
-      if (group.age === 99) {
-        age100Male += survivingMale;
-        age100Female += survivingFemale;
+      // Age 109 survivors and existing 110+ survivors go to the 110+ aggregate.
+      if (group.age >= OPEN_AGE_MAX - 1) {
+        openAgeMale += survivingMale;
+        openAgeFemale += survivingFemale;
       } else {
         nextPop.push({
           age: group.age + 1,
@@ -637,18 +724,18 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
-    // Add age 100+ aggregate group if any survivors
-    if (age100Male + age100Female > 0) {
+    // Add age 110+ aggregate group if any survivors
+    if (openAgeMale + openAgeFemale > 0) {
       nextPop.push({
-        age: 100,
-        male: age100Male,
-        female: age100Female,
-        total: age100Male + age100Female
+        age: OPEN_AGE_MAX,
+        male: openAgeMale,
+        female: openAgeFemale,
+        total: openAgeMale + openAgeFemale
       });
     }
 
     // Population balance validation (development check)
-    // Threshold of 500 accounts for cumulative rounding across 101 age groups
+    // Threshold of 500 accounts for cumulative rounding across internal age groups
     const nextPopTotal = nextPop.reduce((sum, g) => sum + g.total, 0);
     const expectedNextPop = totalPop + births - totalDeaths + totalMigrationDistributed;
     const balanceError = Math.abs(nextPopTotal - expectedNextPop);
