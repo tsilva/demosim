@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev-server.mjs next dev",
     "build": "next build",
-    "start": "next start",
-    "preview": "next start"
+    "start": "node scripts/dev-server.mjs next start",
+    "preview": "node scripts/dev-server.mjs next start"
   },
   "dependencies": {
     "lucide-react": "^0.575.0",
