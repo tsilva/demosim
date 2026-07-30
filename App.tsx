@@ -38,6 +38,9 @@ const formatRetirementAge = (age: number): string => {
 const cloneParams = (source: SimulationParams): SimulationParams => ({
   ...source,
   mortalityImprovement: { ...source.mortalityImprovement },
+  retirementAgePath: source.retirementAgePath?.map((keyframe) => ({
+    ...keyframe,
+  })),
 });
 
 const App: React.FC = () => {
@@ -129,6 +132,16 @@ const App: React.FC = () => {
         key === 'mortalityImprovement';
 
       if (!shouldUseCustomDemographicPath) {
+        if (key === 'retirementAge') {
+          const {
+            retirementAgePath: _retirementAgePath,
+            ...fixedRetirementParams
+          } = previousParams;
+          return {
+            ...fixedRetirementParams,
+            retirementAge: value as number,
+          };
+        }
         return { ...previousParams, [key]: value };
       }
 
@@ -328,7 +341,7 @@ const App: React.FC = () => {
                 <div>
                   <label className="mb-1 flex justify-between text-xs text-slate-400">
                     <span>Retirement Age</span>
-                    <span className="font-mono font-bold text-amber-400">{formatRetirementAge(params.retirementAge)}</span>
+                    <span className="font-mono font-bold text-amber-400">{formatRetirementAge(currentData.assumptions.retirementAge)}</span>
                   </label>
                   <input
                     type="range"
@@ -336,10 +349,15 @@ const App: React.FC = () => {
                     min={60}
                     max={75}
                     step={1 / 12}
-                    value={params.retirementAge}
+                    value={currentData.assumptions.retirementAge}
                     onChange={(e) => handleParamChange('retirementAge', Number(e.target.value))}
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-amber-500"
                   />
+                  <p className="mt-1 text-[10px] italic text-slate-500">
+                    {params.retirementAgePath
+                      ? `Current-law EC path for ${currentYear}; editing makes it a fixed age`
+                      : 'Fixed for all projected years'}
+                  </p>
                 </div>
               </div>
 
@@ -358,7 +376,7 @@ const App: React.FC = () => {
                   <div>
                     <p className="text-xs font-medium text-slate-200">Advanced demographic inputs</p>
                     <p className="mt-1 text-[10px] text-slate-500">
-                      Fertility, migration, mortality, workforce entry and unemployment.
+                      Fertility, migration, mortality, workforce entry and employment.
                     </p>
                   </div>
                   <span className="text-xs font-medium text-emerald-400">
@@ -502,33 +520,35 @@ const App: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Unemployment Adjustment - Locked by scenario */}
+                {/* Employment-rate adjustment - Locked by scenario */}
                 <div>
                   <label className="flex justify-between text-xs text-slate-400 mb-1">
                     <span className="flex items-center">
-                      Unemployment Adjust
-                      <InfoTooltip content="Change from baseline unemployment rate. Positive = higher unemployment, fewer workers contributing to social security." />
+                      Employment Level Adjust
+                      <InfoTooltip content="Proportional adjustment to every 2025 age-specific employment rate. Positive values mean fewer employed people; this is not a percentage-point unemployment-rate change." />
                     </span>
-                    <span className={`font-mono font-bold ${params.unemploymentAdjustment > 0 ? 'text-rose-400' : params.unemploymentAdjustment < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
-                      {params.unemploymentAdjustment >= 0 ? '+' : ''}{(params.unemploymentAdjustment * 100).toFixed(0)}%
+                    <span className={`font-mono font-bold ${params.employmentRateAdjustment > 0 ? 'text-rose-400' : params.employmentRateAdjustment < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {params.employmentRateAdjustment === 0
+                        ? '0%'
+                        : `${params.employmentRateAdjustment > 0 ? '-' : '+'}${Math.abs(params.employmentRateAdjustment * 100).toFixed(0)}%`}
                     </span>
                   </label>
                   <input
                     type="range"
-                    aria-label="Unemployment adjustment"
+                    aria-label="Employment level adjustment"
                     min={-10}
                     max={15}
                     step={1}
-                    value={params.unemploymentAdjustment * 100}
+                    value={params.employmentRateAdjustment * 100}
                     disabled={!isCustomScenario}
-                    onChange={(e) => handleParamChange('unemploymentAdjustment', Number(e.target.value) / 100)}
+                    onChange={(e) => handleParamChange('employmentRateAdjustment', Number(e.target.value) / 100)}
                     className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-rose-500 ${
                       !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
                     }`}
                   />
                   <p className="text-[10px] text-slate-500 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
-                    + = higher unemployment
+                    Sign shown is the resulting employment-level change
                   </p>
                 </div>
               </div>
@@ -547,7 +567,7 @@ const App: React.FC = () => {
         {/* Center Column: Pyramid + Charts (6 cols) */}
         <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-2 lg:col-span-6">
           <div className="relative flex h-[320px] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 p-3 shadow-lg backdrop-blur-sm sm:h-[400px] sm:overflow-visible sm:p-4 md:h-[420px]">
-             <PyramidChart data={currentData} retirementAge={params.retirementAge} medianAge={currentData.medianAge} />
+             <PyramidChart data={currentData} retirementAge={currentData.assumptions.retirementAge} medianAge={currentData.medianAge} />
           </div>
 
           <div ref={trendChartsRef} className="grid grid-cols-1 gap-4 md:grid-cols-2">

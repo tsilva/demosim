@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node scripts/dev-server.mjs next dev",
     "build": "next build",
+    "data:update:europop": "node scripts/update-europop-data.mjs",
+    "data:validate": "node scripts/validate-model-data.mjs",
     "start": "node scripts/dev-server.mjs next start",
     "preview": "node scripts/dev-server.mjs next start"
   },

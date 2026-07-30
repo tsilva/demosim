@@ -11,19 +11,19 @@ export interface EconomicMetrics {
   laborUtilizationRate: number;      // Total workers (incl. post-retirement) / working-age pop
 
   // Social Security
-  totalSSContributions: number;      // 2024 EUR/year from workers
-  totalPensionPayments: number;      // 2024 EUR/year to retirees
-  ssBalance: number;                 // Contributions - Payments, 2024 EUR/year
-  ssBalancePerWorker: number;        // 2024 EUR/year per worker
+  totalSSContributions: number;      // Constant 2025 EUR/year
+  publicPensionSpending: number;     // SS + CGA, constant 2025 EUR/year
+  ssBalance: number;                 // Effective revenue - expenditure, constant 2025 EUR/year
+  ssBalancePerWorker: number;        // Constant 2025 EUR/year per worker
 
   // Healthcare
-  totalHealthcareCost: number;       // 2024 EUR/year for population (public + private)
-  publicHealthcareCost: number;      // 2024 EUR/year public share only (used in fiscal burden)
-  healthcareCostPerWorker: number;   // 2024 EUR/year per worker (total)
+  totalHealthcareCost: number;       // Public + private, constant 2025 EUR/year
+  publicHealthcareCost: number;      // Constant 2025 EUR/year
+  healthcareCostPerWorker: number;   // Constant 2025 EUR/year per worker
 
-  // Combined
-  totalBurdenPerWorker: number;      // SS deficit + healthcare per worker, 2024 EUR/year
-  sustainabilityIndex: number;       // 0-100 (100 = sustainable)
+  // Public pensions + public healthcare
+  ageRelatedSpendingPerWorker: number;
+  ageRelatedSpendingShareOfGdp: number;
 }
 
 export interface YearData {
@@ -38,6 +38,7 @@ export interface YearData {
   assumptions: {
     fertilityRate: number;
     netMigration: number;
+    retirementAge: number;
   };
   economic: EconomicMetrics;
 }
@@ -53,6 +54,7 @@ export interface MortalityImprovementRate {
 
 export interface SimulationParams {
   retirementAge: number;
+  retirementAgePath?: Array<{ year: number; value: number }>;
   fertilityRate: number; // Children per woman
   netMigration: number; // Long-run annual net migration after convergence
   initialNetMigration?: number; // Initial projection-year net migration, when different from long-run trend
@@ -60,7 +62,7 @@ export interface SimulationParams {
   mortalityImprovement: MortalityImprovementRate; // Configurable mortality improvement rates
   // Economic parameters
   workforceEntryAgeShift: number; // Years to shift workforce entry (0=current, +2=2 years later due to more education)
-  unemploymentAdjustment: number; // Adjustment factor (0=baseline, +0.05=5% higher unemployment, -0.03=3% lower)
+  employmentRateAdjustment: number; // Proportional change (0=baseline, +0.05=5% lower employment)
   // Presets follow annual EUROPOP2025 assumptions. Manual edits remove this
   // profile and use the constant/custom controls above.
   projectionProfile?: import('./data/projectionAssumptions').ProjectionProfile;
@@ -74,15 +76,28 @@ export interface ScenarioDefinition {
 }
 
 const PORTUGAL_RETIREMENT_AGE_2026 = 66 + 9 / 12;
+// 2026 and 2027 are enacted values. Later keyframes are the current-policy
+// projection in Portugal's EC 2024 Ageing Report country fiche.
+export const PORTUGAL_STATUTORY_RETIREMENT_AGE_PATH = [
+  { year: 2026, value: PORTUGAL_RETIREMENT_AGE_2026 },
+  { year: 2027, value: 66 + 11 / 12 },
+  { year: 2030, value: 66 + 11 / 12 },
+  { year: 2040, value: 67 + 6 / 12 },
+  { year: 2050, value: 68 + 1 / 12 },
+  { year: 2060, value: 68 + 7 / 12 },
+  { year: 2070, value: 69 + 2 / 12 },
+  { year: 2100, value: 69 + 2 / 12 },
+];
 
 // Demographic paths use the official EUROPOP2025 baseline and sensitivity
 // assumptions. Economic controls remain transparent model assumptions.
 export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioDefinition> = {
   low: {
     name: 'Low',
-    description: 'EUROPOP2025 lower fertility and migration paths; baseline mortality; +3% unemployment',
+    description: 'EUROPOP2025 lower fertility and migration paths; baseline mortality; 3% lower employment rates',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2026,
+      retirementAgePath: PORTUGAL_STATUTORY_RETIREMENT_AGE_PATH,
       fertilityRate: 1.46506,
       initialNetMigration: 87506,
       netMigration: 22305,
@@ -94,7 +109,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
         migration: 'lower',
       },
       workforceEntryAgeShift: 1,    // People enter workforce 1 year later (more education/fewer jobs)
-      unemploymentAdjustment: 0.03  // 3% higher unemployment (economic stagnation)
+      employmentRateAdjustment: 0.03  // Employment rates 3% below the 2025 age profile
     }
   },
   medium: {
@@ -102,6 +117,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
     description: 'EUROPOP2025 baseline fertility, mortality, and migration paths',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2026,
+      retirementAgePath: PORTUGAL_STATUTORY_RETIREMENT_AGE_PATH,
       fertilityRate: 1.46506,
       initialNetMigration: 132517,
       netMigration: 35716,
@@ -113,14 +129,15 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
         migration: 'baseline',
       },
       workforceEntryAgeShift: 0,    // Current workforce entry patterns
-      unemploymentAdjustment: 0     // Current unemployment levels
+      employmentRateAdjustment: 0     // 2025 age-specific employment rates
     }
   },
   high: {
     name: 'High',
-    description: 'EUROPOP2025 higher migration and lower mortality paths; baseline fertility; -2% unemployment',
+    description: 'EUROPOP2025 higher migration and lower mortality paths; baseline fertility; 2% higher employment rates',
     params: {
       retirementAge: PORTUGAL_RETIREMENT_AGE_2026,
+      retirementAgePath: PORTUGAL_STATUTORY_RETIREMENT_AGE_PATH,
       fertilityRate: 1.46506,
       initialNetMigration: 178171,
       netMigration: 49169,
@@ -132,7 +149,7 @@ export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioD
         migration: 'higher',
       },
       workforceEntryAgeShift: -1,   // Earlier workforce entry (better vocational training)
-      unemploymentAdjustment: -0.02 // 2% lower unemployment (economic growth)
+      employmentRateAdjustment: -0.02 // Employment rates 2% above the 2025 age profile
     }
   }
 };

@@ -29,19 +29,22 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">Population:</span> INE revised 31 December 2025 stock (11,424,031)
                 </li>
                 <li>
-                  <span className="text-slate-300">Mortality:</span> Eurostat 2024 age/sex rates + EUROPOP2025 improvement paths
+                  <span className="text-slate-300">Mortality:</span> Exact annual EUROPOP2025 age/sex cohort-survival paths
                 </li>
                 <li>
-                  <span className="text-slate-300">Fertility:</span> Eurostat 2024 age pattern + EUROPOP2025 TFR and timing paths
+                  <span className="text-slate-300">Fertility:</span> Exact annual EUROPOP2025 age-specific fertility rates
                 </li>
                 <li>
                   <span className="text-slate-300">Migration:</span> EUROPOP2025 annual totals and evolving age/sex profiles
                 </li>
                 <li>
-                  <span className="text-slate-300">Retirement:</span> Official 2026 normal pension age (66y 9m)
+                  <span className="text-slate-300">Retirement:</span> Enacted 2026–27 ages + EC current-policy path to 2070
                 </li>
                 <li>
-                  <span className="text-slate-300">Healthcare:</span> Eurostat SHA aggregate spending; model age-cost weights
+                  <span className="text-slate-300">Fiscal:</span> CFP 2025 SS execution and public pension spending
+                </li>
+                <li>
+                  <span className="text-slate-300">Healthcare:</span> Eurostat SHA 2025 provisional totals + EC Ageing Report
                 </li>
               </ul>
             </div>
@@ -60,19 +63,19 @@ const AboutPanel: React.FC = () => {
                   <span className="text-slate-300">Presets:</span> EUROPOP2025 baseline and sensitivity assumptions
                 </li>
                 <li>
-                  <span className="text-slate-300">SS Contributions:</span> Workforce × salary × 34.75%
+                  <span className="text-slate-300">Official-data checks:</span> All annual EUROPOP transitions and births reproduce exactly
                 </li>
                 <li>
-                  <span className="text-slate-300">SS Balance:</span> Contributions minus pensions and calibrated non-pension spending
+                  <span className="text-slate-300">SS Balance:</span> Effective revenue minus effective expenditure
                 </li>
                 <li>
-                  <span className="text-slate-300">Sustainability:</span> 100 × (1 - burden / (40% GDP))
+                  <span className="text-slate-300">Fiscal pressure:</span> Public pensions + public healthcare as % of GDP
                 </li>
                 <li>
-                  <span className="text-slate-300">Currency:</span> All economic outputs in inflation-adjusted 2024 EUR
+                  <span className="text-slate-300">Currency:</span> Monetary outputs in constant 2025 EUR
                 </li>
                 <li>
-                  <span className="text-slate-300">Age 100+:</span> Internally split through 110+
+                  <span className="text-slate-300">Age 100+:</span> Eurostat-compatible open cohort
                 </li>
               </ul>
             </div>
@@ -87,9 +90,9 @@ const AboutPanel: React.FC = () => {
                 <li>Scenario projection, not a prediction or official forecast</li>
                 <li>No modeling of policy changes, economic shocks, or pandemics</li>
                 <li>INE publishes ages 85+ together; the simulator splits them using the Eurostat 2025 age/sex pattern</li>
-                <li>EUROPOP2025 keyframes are interpolated between official years (geometrically for mortality)</li>
-                <li>Economic inputs remain illustrative 2024 constant-EUR assumptions and are less certain than the population mechanics</li>
-                <li>Healthcare age costs use simplified model weights and real cost growth</li>
+                <li>EUROPOP2025 assumptions are scenarios; combining sensitivity variants is not an official Eurostat scenario</li>
+                <li>EC fiscal paths end in 2070; later years hold the final published share and vary it with scenario exposure</li>
+                <li>Healthcare sensitivity uses the EC EU14 age/sex cost profile, which includes Portugal but is not Portugal-specific</li>
               </ul>
             </div>
           </div>

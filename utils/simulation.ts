@@ -1,23 +1,27 @@
-import { AgeGroup, YearData, SimulationParams, EconomicMetrics } from '../types';
+import {
+  AgeGroup,
+  YearData,
+  SimulationParams,
+  EconomicMetrics,
+  PORTUGAL_STATUTORY_RETIREMENT_AGE_PATH,
+} from '../types';
 
 // Import real demographic data
 import { populationData } from '../data/population2026';
-import { lifeTables } from '../data/lifeTables';
 import { fertilityData } from '../data/fertilityRates';
 import { migrationData } from '../data/migrationProfile';
 import {
-  FERTILITY_PATHS,
-  MIGRATION_SHARE_KEYFRAMES,
-  MIGRATION_TOTAL_PATHS,
-  MORTALITY_FACTOR_KEYFRAMES,
-  PROJECTION_AGE_BINS,
-  type MigrationProjection,
+  getEuropopFertilityExposureCalibration,
+  getEuropopFertilityRates,
+  getEuropopMigrationAmounts,
+  getEuropopNetMigration,
+  getEuropopNewbornCoefficients,
+  getEuropopReferencePopulation,
+  getEuropopSurvivalFactors,
 } from '../data/projectionAssumptions';
 import economicParams from '../data/economicParams.json';
 
 const MAX_AGE = 100;
-const OPEN_AGE_MAX = 110;
-const OPEN_AGE_MORTALITY_GROWTH = 1.10;
 const BASE_YEAR = 2026;
 const ENTRY_SHIFT_MAX_AGE = 29;
 const MIGRATION_ROUNDING_SOURCE_AGE = 29;
@@ -48,36 +52,6 @@ export const generateInitialData = (): AgeGroup[] => {
   return INITIAL_POPULATION.map(group => ({ ...group }));
 };
 
-/**
- * Get mortality rate (qx) for a given age and sex
- * Uses Eurostat 2024 mortality calibrated to life expectancy:
- * - Male: 79.7 years
- * - Female: 85.2 years
- *
- * @param age - Age in years
- * @param sex - 'male' or 'female'
- * @param yearsFromBase - Years from projection start (for mortality improvement)
- * @param mortalityImprovement - Configurable improvement rates from SimulationParams
- */
-const getRawOpenAgeBaseQx = (age: number, sex: Sex): number => {
-  const qxArray = sex === 'male' ? lifeTables.qx.male : lifeTables.qx.female;
-  if (age <= MAX_AGE) {
-    return qxArray[age];
-  }
-
-  return qxArray[MAX_AGE] * Math.pow(OPEN_AGE_MORTALITY_GROWTH, age - MAX_AGE);
-};
-
-const clampMortalityRate = (qx: number): number => Math.max(0, Math.min(qx, 0.999999));
-
-const getScaledOpenAgeBaseQx = (age: number, sex: Sex, scale: number): number => {
-  return clampMortalityRate(getRawOpenAgeBaseQx(age, sex) * scale);
-};
-
-const getOpenAgeBaseQx = (age: number, sex: Sex): number => {
-  return getScaledOpenAgeBaseQx(age, sex, 1);
-};
-
 const getMortalityImprovementAgeFactor = (age: number): number => {
   if (age <= 1) return 1.5;
   if (age <= 39) return 1.2;
@@ -92,100 +66,10 @@ const getAgeAdjustedMortalityImprovement = (age: number, baseRate: number): numb
   return Math.max(-0.05, Math.min(0.05, adjustedRate));
 };
 
-const distributeOpenAgePopulation = (
-  total: number,
-  sex: Sex,
-  mortalityScale = 1
-): number[] => {
-  const weights: number[] = [];
-  let survivalWeight = 1;
+const expandInitialPopulation = (): AgeGroup[] => generateInitialData();
 
-  for (let age = MAX_AGE; age <= OPEN_AGE_MAX; age++) {
-    if (age > MAX_AGE) {
-      survivalWeight *= 1 - getScaledOpenAgeBaseQx(age - 1, sex, mortalityScale);
-    }
-    weights.push(survivalWeight);
-  }
-
-  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  const distribution: number[] = [];
-  let allocated = 0;
-
-  for (let i = 0; i < weights.length; i++) {
-    if (i === weights.length - 1) {
-      distribution.push(total - allocated);
-      break;
-    }
-
-    const value = Math.round((total * weights[i]) / totalWeight);
-    distribution.push(value);
-    allocated += value;
-  }
-
-  return distribution;
-};
-
-const expandInitialPopulation = (
-  mortalityScale = 1
-): AgeGroup[] => {
-  const expanded: AgeGroup[] = [];
-
-  for (const group of INITIAL_POPULATION) {
-    if (group.age < MAX_AGE) {
-      expanded.push({ ...group });
-      continue;
-    }
-
-    const maleDistribution = distributeOpenAgePopulation(group.male, 'male', mortalityScale);
-    const femaleDistribution = distributeOpenAgePopulation(group.female, 'female', mortalityScale);
-    for (let age = MAX_AGE; age <= OPEN_AGE_MAX; age++) {
-      const index = age - MAX_AGE;
-      const male = maleDistribution[index];
-      const female = femaleDistribution[index];
-      expanded.push({
-        age,
-        male,
-        female,
-        total: male + female,
-      });
-    }
-  }
-
-  return expanded;
-};
-
-const collapseOpenAgePopulation = (population: AgeGroup[]): AgeGroup[] => {
-  const collapsed: AgeGroup[] = [];
-  let openAgeMale = 0;
-  let openAgeFemale = 0;
-
-  for (const group of population) {
-    if (group.age < MAX_AGE) {
-      collapsed.push({ ...group });
-      continue;
-    }
-
-    openAgeMale += group.male;
-    openAgeFemale += group.female;
-  }
-
-  collapsed.push({
-    age: MAX_AGE,
-    male: openAgeMale,
-    female: openAgeFemale,
-    total: openAgeMale + openAgeFemale,
-  });
-
-  return collapsed;
-};
-
-/**
- * Approximate mortality for people exposed to only half of the year
- * (newborns and immigrants arrive uniformly through the year on average)
- */
-const getHalfYearMortalityRate = (annualQx: number): number => {
-  return 1 - Math.sqrt(1 - annualQx);
-};
+const collapseOpenAgePopulation = (population: AgeGroup[]): AgeGroup[] =>
+  population.map((group) => ({ ...group }));
 
 /**
  * Parse age group string like "20-24" or "80+" into [min, max]
@@ -248,135 +132,53 @@ const buildTransitionMigrationAmounts = (
   const totalFemaleMigration = annualNetMigration * (1 - migrationData.sexRatio.ratio);
   const maleByProfileAge = buildProfileAgeMigrationAmounts(totalMaleMigration, MIGRATION_WEIGHTS.male);
   const femaleByProfileAge = buildProfileAgeMigrationAmounts(totalFemaleMigration, MIGRATION_WEIGHTS.female);
-  const maleBySourceAge = Array(MAX_AGE).fill(0);
-  const femaleBySourceAge = Array(MAX_AGE).fill(0);
-  let maleAgeZero = 0;
-  let femaleAgeZero = 0;
+  const maleByTargetAge = Array(MAX_AGE + 1).fill(0);
+  const femaleByTargetAge = Array(MAX_AGE + 1).fill(0);
 
   if (migrationData.ageBasis === 'endOfTransition') {
-    maleAgeZero = maleByProfileAge[0];
-    femaleAgeZero = femaleByProfileAge[0];
-    for (let sourceAge = 0; sourceAge < MAX_AGE; sourceAge++) {
-      maleBySourceAge[sourceAge] = maleByProfileAge[sourceAge + 1] || 0;
-      femaleBySourceAge[sourceAge] = femaleByProfileAge[sourceAge + 1] || 0;
+    for (let age = 0; age <= MAX_AGE; age++) {
+      maleByTargetAge[age] = maleByProfileAge[age] || 0;
+      femaleByTargetAge[age] = femaleByProfileAge[age] || 0;
     }
   } else {
     for (let sourceAge = 0; sourceAge < MAX_AGE; sourceAge++) {
-      maleBySourceAge[sourceAge] = maleByProfileAge[sourceAge] || 0;
-      femaleBySourceAge[sourceAge] = femaleByProfileAge[sourceAge] || 0;
+      maleByTargetAge[sourceAge + 1] = maleByProfileAge[sourceAge] || 0;
+      femaleByTargetAge[sourceAge + 1] = femaleByProfileAge[sourceAge] || 0;
     }
   }
 
-  const allocatedMigration = maleAgeZero + femaleAgeZero +
-    maleBySourceAge.reduce((sum, migration) => sum + migration, 0) +
-    femaleBySourceAge.reduce((sum, migration) => sum + migration, 0);
+  const allocatedMigration =
+    maleByTargetAge.reduce((sum, migration) => sum + migration, 0) +
+    femaleByTargetAge.reduce((sum, migration) => sum + migration, 0);
   const migrationRoundingRemainder = Math.round(annualNetMigration) - allocatedMigration;
   if (migrationRoundingRemainder !== 0) {
-    femaleBySourceAge[MIGRATION_ROUNDING_SOURCE_AGE] += migrationRoundingRemainder;
+    femaleByTargetAge[MIGRATION_ROUNDING_SOURCE_AGE] += migrationRoundingRemainder;
   }
 
   return {
-    maleBySourceAge,
-    femaleBySourceAge,
-    maleAgeZero,
-    femaleAgeZero,
+    maleByTargetAge,
+    femaleByTargetAge,
   };
 };
 
-const interpolateKeyframeValues = (
-  keyframes: readonly (readonly number[])[],
-  year: number,
-  mode: 'linear' | 'geometric' = 'linear'
-): number[] => {
-  if (keyframes.length === 0) {
-    return [];
-  }
-
-  if (year <= keyframes[0][0]) {
-    return keyframes[0].slice(1);
-  }
-
-  const last = keyframes[keyframes.length - 1];
-  if (year >= last[0]) {
-    return last.slice(1);
-  }
-
-  for (let i = 1; i < keyframes.length; i++) {
-    const upper = keyframes[i];
-    if (year <= upper[0]) {
-      const lower = keyframes[i - 1];
-      const progress = (year - lower[0]) / (upper[0] - lower[0]);
-      return lower.slice(1).map((value, index) => {
-        const upperValue = upper[index + 1] ?? value;
-        if (mode === 'geometric' && value > 0 && upperValue > 0) {
-          return Math.exp(
-            Math.log(value) + (Math.log(upperValue) - Math.log(value)) * progress
-          );
-        }
-        return value + (upperValue - value) * progress;
-      });
-    }
-  }
-
-  return last.slice(1);
-};
-
-const getProjectionAgeBinIndex = (age: number): number => {
-  const cappedAge = Math.min(age, MAX_AGE);
-  const index = PROJECTION_AGE_BINS.findIndex(
-    ([minimumAge, maximumAge]) => cappedAge >= minimumAge && cappedAge <= maximumAge
-  );
-  return index >= 0 ? index : PROJECTION_AGE_BINS.length - 1;
-};
-
-const getAnnualFertilityAssumption = (
+const getAnnualFertilityRates = (
   year: number,
   params: SimulationParams
-): { totalFertilityRate: number; meanAgeAtChildbirth: number } => {
-  if (!params.projectionProfile) {
-    return {
-      totalFertilityRate: params.fertilityRate,
-      meanAgeAtChildbirth: fertilityData.meanAgeAtChildbirth,
-    };
-  }
-
-  const [totalFertilityRate, meanAgeAtChildbirth] = interpolateKeyframeValues(
-    FERTILITY_PATHS[params.projectionProfile.fertility],
-    year
-  );
-  return { totalFertilityRate, meanAgeAtChildbirth };
-};
-
-const interpolateAgeSpecificFertilityRate = (age: number): number => {
-  if (age < 15 || age > 49) {
-    return 0;
-  }
-
-  const lowerAge = Math.floor(age);
-  const upperAge = Math.ceil(age);
-  const lowerRate = FERTILITY_BY_AGE[lowerAge] || 0;
-  if (lowerAge === upperAge) {
-    return lowerRate;
-  }
-
-  const upperRate = FERTILITY_BY_AGE[upperAge] || 0;
-  return lowerRate + (upperRate - lowerRate) * (age - lowerAge);
-};
-
-const buildAnnualFertilityRates = (
-  totalFertilityRate: number,
-  meanAgeAtChildbirth: number
 ): number[] => {
-  const rates = Array(MAX_AGE + 1).fill(0);
-  const ageShift = meanAgeAtChildbirth - fertilityData.meanAgeAtChildbirth;
-
-  for (let age = 15; age <= 49; age++) {
-    rates[age] = interpolateAgeSpecificFertilityRate(age - ageShift);
+  if (params.projectionProfile) {
+    return [...getEuropopFertilityRates(
+      year,
+      params.projectionProfile.fertility
+    )];
   }
 
+  const rates = Array(MAX_AGE + 1).fill(0);
+  for (let age = 15; age <= 49; age++) {
+    rates[age] = FERTILITY_BY_AGE[age];
+  }
   const unscaledTotal = rates.reduce((sum, rate) => sum + rate, 0);
   if (unscaledTotal > 0) {
-    const scale = totalFertilityRate / unscaledTotal;
+    const scale = params.fertilityRate / unscaledTotal;
     for (let age = 15; age <= 49; age++) {
       rates[age] *= scale;
     }
@@ -385,77 +187,78 @@ const buildAnnualFertilityRates = (
   return rates;
 };
 
-const getProjectionMortalityFactor = (
+const getAnnualSurvivalFactors = (
   year: number,
-  age: number,
   sex: Sex,
   params: SimulationParams
-): number | null => {
-  if (!params.projectionProfile) {
-    return null;
+): number[] => {
+  if (params.projectionProfile) {
+    return [...getEuropopSurvivalFactors(
+      year,
+      params.projectionProfile.mortality,
+      sex
+    )];
   }
 
-  const factors = interpolateKeyframeValues(
-    MORTALITY_FACTOR_KEYFRAMES[params.projectionProfile.mortality][sex],
-    year,
-    'geometric'
-  );
-  return factors[getProjectionAgeBinIndex(age)] ?? 1;
+  const baseFactors = getEuropopSurvivalFactors(BASE_YEAR, 'baseline', sex);
+  const baseImprovementRate = sex === 'male'
+    ? params.mortalityImprovement.male
+    : params.mortalityImprovement.female;
+  const yearsFromBase = year - BASE_YEAR;
+
+  return baseFactors.map((baseSurvival, sourceAge) => {
+    const mortalityAge = sourceAge === 99 ? MAX_AGE : sourceAge + 1;
+    const improvementRate = getAgeAdjustedMortalityImprovement(
+      mortalityAge,
+      baseImprovementRate
+    );
+    const baseDeathProbability = 1 - baseSurvival;
+    const improvedDeathProbability = baseDeathProbability *
+      Math.pow(1 - improvementRate, yearsFromBase);
+    return Math.max(0, Math.min(1, 1 - improvedDeathProbability));
+  });
 };
 
-const buildProjectedTransitionMigrationAmounts = (
-  annualNetMigration: number,
+const getAnnualNewbornCoefficients = (
   year: number,
-  projection: MigrationProjection
-) => {
-  const maleBinShares = interpolateKeyframeValues(
-    MIGRATION_SHARE_KEYFRAMES[projection].male,
-    year
-  );
-  const femaleBinShares = interpolateKeyframeValues(
-    MIGRATION_SHARE_KEYFRAMES[projection].female,
-    year
-  );
-  const totalShare = [...maleBinShares, ...femaleBinShares]
-    .reduce((sum, share) => sum + share, 0);
-  const normalization = totalShare === 0 ? 0 : 1 / totalShare;
-  const maleByProfileAge = Array(MAX_AGE + 1).fill(0);
-  const femaleByProfileAge = Array(MAX_AGE + 1).fill(0);
-
-  PROJECTION_AGE_BINS.forEach(([minimumAge, maximumAge], binIndex) => {
-    const ageCount = maximumAge - minimumAge + 1;
-    const malePerAge = annualNetMigration * (maleBinShares[binIndex] || 0) *
-                       normalization / ageCount;
-    const femalePerAge = annualNetMigration * (femaleBinShares[binIndex] || 0) *
-                         normalization / ageCount;
-
-    for (let age = minimumAge; age <= maximumAge; age++) {
-      maleByProfileAge[age] = Math.round(malePerAge);
-      femaleByProfileAge[age] = Math.round(femalePerAge);
-    }
-  });
-
-  const maleBySourceAge = Array(MAX_AGE).fill(0);
-  const femaleBySourceAge = Array(MAX_AGE).fill(0);
-  for (let sourceAge = 0; sourceAge < MAX_AGE; sourceAge++) {
-    maleBySourceAge[sourceAge] = maleByProfileAge[sourceAge + 1] || 0;
-    femaleBySourceAge[sourceAge] = femaleByProfileAge[sourceAge + 1] || 0;
+  params: SimulationParams
+): readonly [number, number] => {
+  if (params.projectionProfile) {
+    return getEuropopNewbornCoefficients(
+      year,
+      params.projectionProfile.mortality
+    );
   }
 
-  const maleAgeZero = maleByProfileAge[0];
-  const femaleAgeZero = femaleByProfileAge[0];
-  const allocatedMigration = maleAgeZero + femaleAgeZero +
-    maleBySourceAge.reduce((sum, migration) => sum + migration, 0) +
-    femaleBySourceAge.reduce((sum, migration) => sum + migration, 0);
-  femaleBySourceAge[MIGRATION_ROUNDING_SOURCE_AGE] +=
-    Math.round(annualNetMigration) - allocatedMigration;
-
-  return {
-    maleBySourceAge,
-    femaleBySourceAge,
-    maleAgeZero,
-    femaleAgeZero,
+  const [baseMaleCoefficient, baseFemaleCoefficient] =
+    getEuropopNewbornCoefficients(BASE_YEAR, 'baseline');
+  const sexRatio = fertilityData.sexRatioAtBirth.ratio;
+  const maleBirthShare = sexRatio / (1 + sexRatio);
+  const femaleBirthShare = 1 - maleBirthShare;
+  const yearsFromBase = year - BASE_YEAR;
+  const improveCoefficient = (
+    baseCoefficient: number,
+    birthShare: number,
+    sex: Sex
+  ) => {
+    const baseSurvival = baseCoefficient / birthShare;
+    const baseDeathProbability = Math.max(0, 1 - baseSurvival);
+    const baseImprovementRate = sex === 'male'
+      ? params.mortalityImprovement.male
+      : params.mortalityImprovement.female;
+    const improvementRate = getAgeAdjustedMortalityImprovement(
+      0,
+      baseImprovementRate
+    );
+    const improvedDeathProbability = baseDeathProbability *
+      Math.pow(1 - improvementRate, yearsFromBase);
+    return birthShare * (1 - improvedDeathProbability);
   };
+
+  return [
+    improveCoefficient(baseMaleCoefficient, maleBirthShare, 'male'),
+    improveCoefficient(baseFemaleCoefficient, femaleBirthShare, 'female'),
+  ];
 };
 
 const EMPLOYMENT_BASE_RATE_BY_AGE = (() => {
@@ -471,19 +274,48 @@ const EMPLOYMENT_BASE_RATE_BY_AGE = (() => {
   return rates;
 })();
 
-const HEALTHCARE_MULTIPLIER_BY_AGE = Array.from({ length: MAX_AGE + 1 }, (_, age) => {
-  const multipliers = economicParams.healthcare.ageMultipliers;
-  if (age <= 19) return multipliers['0-19'];
-  if (age <= 64) return multipliers['20-64'];
-  if (age <= 74) return multipliers['65-74'];
-  if (age <= 84) return multipliers['75-84'];
-  return multipliers['85+'];
+type NumericKeyframe = { year: number; value: number };
+type AgeWeightKeyframe = { age: number; weight: number };
+
+const interpolateKeyframes = (
+  keyframes: readonly NumericKeyframe[],
+  year: number
+): number => {
+  if (year <= keyframes[0].year) return keyframes[0].value;
+  if (year >= keyframes[keyframes.length - 1].year) {
+    return keyframes[keyframes.length - 1].value;
+  }
+
+  const upperIndex = keyframes.findIndex((keyframe) => keyframe.year >= year);
+  const lower = keyframes[upperIndex - 1];
+  const upper = keyframes[upperIndex];
+  const progress = (year - lower.year) / (upper.year - lower.year);
+  return lower.value + (upper.value - lower.value) * progress;
+};
+
+const getAnnualRetirementAge = (
+  year: number,
+  params: SimulationParams
+): number => params.retirementAgePath
+  ? interpolateKeyframes(params.retirementAgePath, year)
+  : params.retirementAge;
+
+const buildAgeWeightCurve = (
+  keyframes: readonly AgeWeightKeyframe[]
+): number[] => Array.from({ length: MAX_AGE + 1 }, (_, age) => {
+  if (age <= keyframes[0].age) return keyframes[0].weight;
+  const upperIndex = keyframes.findIndex((keyframe) => keyframe.age >= age);
+  if (upperIndex < 0) return keyframes[keyframes.length - 1].weight;
+  const lower = keyframes[upperIndex - 1];
+  const upper = keyframes[upperIndex];
+  const progress = (age - lower.age) / (upper.age - lower.age);
+  return lower.weight + (upper.weight - lower.weight) * progress;
 });
 
-const BASE_HEALTHCARE_WEIGHTED_MULTIPLIER = INITIAL_POPULATION.reduce(
-  (weightedTotal, group) => weightedTotal + group.total * HEALTHCARE_MULTIPLIER_BY_AGE[group.age],
-  0
-) / INITIAL_POPULATION.reduce((total, group) => total + group.total, 0);
+const HEALTHCARE_WEIGHT_BY_AGE = {
+  male: buildAgeWeightCurve(economicParams.healthcare.ageCostProfile.male),
+  female: buildAgeWeightCurve(economicParams.healthcare.ageCostProfile.female),
+};
 
 const getWorkingShare = (age: number, retirementAge: number): number => {
   if (age < 15) {
@@ -507,20 +339,6 @@ const getRetiredShare = (age: number, retirementAge: number): number => {
   }
 
   return 1 - getWorkingShare(age, retirementAge);
-};
-
-const getPensionRecipientShare = (
-  age: number,
-  retirementAge: number,
-  employmentRate: number
-): number => {
-  const retiredShare = getRetiredShare(age, retirementAge);
-  if (retiredShare <= 0) {
-    return 0;
-  }
-
-  // Employed retirees are excluded from pension payments per the model notes.
-  return Math.max(0, retiredShare - employmentRate);
 };
 
 const getLateCareerEmploymentRate = (age: number): number => {
@@ -562,7 +380,7 @@ const getRetirementAdjustedEmploymentRate = (
 
 const buildEmploymentRates = (
   workforceEntryAgeShift: number,
-  unemploymentAdjustment: number,
+  employmentRateAdjustment: number,
   retirementAge: number = BASE_RETIREMENT_AGE
 ) => {
   return Array.from({ length: MAX_AGE + 1 }, (_, age) => {
@@ -575,7 +393,7 @@ const buildEmploymentRates = (
       baseRate,
       retirementAge
     );
-    const adjustedRate = retirementAdjustedRate * (1 - unemploymentAdjustment);
+    const adjustedRate = retirementAdjustedRate * (1 - employmentRateAdjustment);
     return Math.max(0, Math.min(1, adjustedRate));
   });
 };
@@ -586,10 +404,10 @@ const getAnnualNetMigration = (
   params: SimulationParams
 ): number => {
   if (params.projectionProfile) {
-    return interpolateKeyframeValues(
-      MIGRATION_TOTAL_PATHS[params.projectionProfile.migration],
-      year
-    )[0];
+    return getEuropopNetMigration(
+      year,
+      params.projectionProfile.migration
+    );
   }
 
   const initialNetMigration = params.initialNetMigration ?? params.netMigration;
@@ -605,295 +423,218 @@ const getAnnualNetMigration = (
 
 const capNegativeMigrationToAvailablePopulation = (
   migration: number,
-  population: number,
-  annualQx: number
+  survivingPopulation: number
 ): number => {
-  if (migration >= 0 || population <= 0) {
+  if (migration >= 0 || survivingPopulation <= 0) {
     return migration;
   }
 
-  const requestedEmigration = Math.min(-migration, Math.floor(population));
-  let low = 0;
-  let high = requestedEmigration;
-
-  while (low < high) {
-    const candidateEmigration = Math.ceil((low + high) / 2);
-    const residentExposure = Math.max(0, population - candidateEmigration / 2);
-    const residentDeaths = Math.round(residentExposure * annualQx);
-
-    if (candidateEmigration + residentDeaths <= population) {
-      low = candidateEmigration;
-    } else {
-      high = candidateEmigration - 1;
-    }
-  }
-
-  return -low;
+  return -Math.min(-migration, Math.floor(survivingPopulation));
 };
 
-const BASE_OFFICIAL_SS_BALANCE = economicParams.socialSecurity.officialBudgetBalance2024;
+const getRawWorkforce = (
+  population: AgeGroup[],
+  employmentRates: readonly number[]
+): number => population.reduce((total, group) => (
+  group.age >= 15
+    ? total + group.total * employmentRates[Math.min(group.age, MAX_AGE)]
+    : total
+), 0);
 
-const BASE_OTHER_SS_EXPENDITURE_PER_CAPITA = (() => {
-  const retirementAge = BASE_RETIREMENT_AGE;
-  const employmentRates = buildEmploymentRates(0, 0, retirementAge);
-  const baseAvgSalary = economicParams.wages.averageGrossSalary2024 *
-                        economicParams.wages.annualMultiplier;
-  const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
-                         economicParams.wages.annualMultiplier;
-  const ssRate = economicParams.socialSecurity.contributionRates.total;
+const getPensionExposure = (
+  population: AgeGroup[],
+  retirementAge: number
+): number => population.reduce((total, group) => (
+  total + group.total * getRetiredShare(group.age, retirementAge)
+), 0);
 
-  let actualWorkforce = 0;
-  let pensioners = 0;
-  let totalPopulation = 0;
+const getHealthcareExposure = (population: AgeGroup[]): number =>
+  population.reduce((total, group) => (
+    total +
+    group.male * HEALTHCARE_WEIGHT_BY_AGE.male[group.age] +
+    group.female * HEALTHCARE_WEIGHT_BY_AGE.female[group.age]
+  ), 0);
 
-  for (const group of expandInitialPopulation()) {
-    totalPopulation += group.total;
-    if (group.age >= 15) {
-      actualWorkforce += group.total * employmentRates[Math.min(group.age, MAX_AGE)];
-    }
-    const employmentRate = employmentRates[Math.min(group.age, MAX_AGE)];
-    pensioners += group.total * getPensionRecipientShare(group.age, retirementAge, employmentRate);
-  }
-
-  const totalSSContributions = Math.round(actualWorkforce) * baseAvgSalary * ssRate;
-  const totalPensionPayments = Math.round(pensioners) * baseAvgPension;
-  const residualExpenditure = totalSSContributions - totalPensionPayments - BASE_OFFICIAL_SS_BALANCE;
-
-  return Math.max(0, residualExpenditure / totalPopulation);
-})();
-
-/**
- * Get employment rate for a given age, adjusted for retirement policy,
- * workforce entry shift, and unemployment
- *
- * @param age - The actual age of the person
- * @param workforceEntryAgeShift - Years to shift workforce entry (positive = later entry due to more education)
- *   Example: shift=+2 means a 25-year-old has the employment pattern of a current 23-year-old
- *   This models scenarios where people stay in education longer before entering workforce
- * @param unemploymentAdjustment - Factor to adjust employment (positive = higher unemployment)
- *   Example: adjustment=0.05 means 5% fewer people employed (economic downturn)
- *   Applied as: adjusted_rate = base_rate * (1 - unemploymentAdjustment)
- *
- * Source: PORDATA employment rates by age group (2024 baseline)
- */
-const getEmploymentRate = (
-  age: number,
-  workforceEntryAgeShift: number = 0,
-  unemploymentAdjustment: number = 0,
-  retirementAge: number = BASE_RETIREMENT_AGE
-): number => {
-  // Apply workforce entry age shift only to early-career ages. Retirement-age
-  // employment is modeled independently and should not move with entry timing.
-  const effectiveAge = age <= ENTRY_SHIFT_MAX_AGE
-    ? Math.max(15, Math.min(ENTRY_SHIFT_MAX_AGE, age - workforceEntryAgeShift))
-    : age;
-  const baseRate = EMPLOYMENT_BASE_RATE_BY_AGE[effectiveAge] || 0;
-  const retirementAdjustedRate = getRetirementAdjustedEmploymentRate(
+const getReferencePopulation = (year: number): AgeGroup[] => {
+  const male = getEuropopReferencePopulation(year, 'male');
+  const female = getEuropopReferencePopulation(year, 'female');
+  return male.map((malePopulation, age) => ({
     age,
-    baseRate,
-    retirementAge
+    male: malePopulation,
+    female: female[age],
+    total: malePopulation + female[age],
+  }));
+};
+
+const BASE_TOTAL_POPULATION = INITIAL_POPULATION.reduce(
+  (total, group) => total + group.total,
+  0
+);
+const BASE_EMPLOYMENT_RATES = buildEmploymentRates(0, 0, BASE_RETIREMENT_AGE);
+const BASE_RAW_WORKFORCE = getRawWorkforce(
+  INITIAL_POPULATION,
+  BASE_EMPLOYMENT_RATES
+);
+const WORKFORCE_CALIBRATION_FACTOR =
+  economicParams.employment.officialEmployed15Plus2025 /
+  BASE_RAW_WORKFORCE;
+const BASE_PENSION_EXPOSURE = getPensionExposure(
+  INITIAL_POPULATION,
+  BASE_RETIREMENT_AGE
+);
+const BASE_HEALTHCARE_EXPOSURE = getHealthcareExposure(INITIAL_POPULATION);
+const EUROPOP_2026_REFERENCE = getReferencePopulation(BASE_YEAR);
+const BASE_PENSION_REFERENCE_RATIO =
+  (
+    BASE_PENSION_EXPOSURE /
+    economicParams.employment.officialEmployed15Plus2025
+  ) /
+  (
+    getPensionExposure(EUROPOP_2026_REFERENCE, BASE_RETIREMENT_AGE) /
+    (getRawWorkforce(EUROPOP_2026_REFERENCE, BASE_EMPLOYMENT_RATES) *
+      WORKFORCE_CALIBRATION_FACTOR)
+  );
+const BASE_HEALTHCARE_REFERENCE_RATIO =
+  (
+    BASE_HEALTHCARE_EXPOSURE /
+    economicParams.employment.officialEmployed15Plus2025
+  ) /
+  (
+    getHealthcareExposure(EUROPOP_2026_REFERENCE) /
+    (getRawWorkforce(EUROPOP_2026_REFERENCE, BASE_EMPLOYMENT_RATES) *
+      WORKFORCE_CALIBRATION_FACTOR)
   );
 
-  // Apply unemployment adjustment: higher unemployment = lower employment rate
-  // Clamp the result between 0 and the base rate (can't have negative employment)
-  const adjustedRate = retirementAdjustedRate * (1 - unemploymentAdjustment);
-  return Math.max(0, Math.min(1, adjustedRate));
+const getProductivityGrowthFactor = (year: number): number => {
+  let factor = 1;
+  for (let transitionYear = BASE_YEAR; transitionYear < year; transitionYear++) {
+    factor *= 1 + interpolateKeyframes(
+      economicParams.productivity.annualRealGrowthRateKeyframes,
+      transitionYear
+    );
+  }
+  return factor;
 };
 
 /**
- * Get healthcare cost multiplier for a given age
- * Returns multiplier relative to 20-64 baseline (1.0)
- * Aggregate spending is from Eurostat health accounts 2024; the age curve is
- * an explicit model assumption in economicParams.json.
- */
-const getHealthcareMultiplier = (age: number): number => {
-  return HEALTHCARE_MULTIPLIER_BY_AGE[Math.min(age, MAX_AGE)];
-};
-
-/**
- * Calculate economic metrics for a given year's population
- *
- * Formula Documentation:
- *
- * ACTUAL WORKFORCE:
- *   Sum over all ages: population[age] * retirement-adjusted employmentRate[age]
- *
- * SS CONTRIBUTIONS:
- *   actualWorkforce * avgGrossSalary * ssContributionRate * nominalWageGrowthFactor
- *   Where:
- *   - avgGrossSalary = 21,070 EUR/year (1505 * 14 months)
- *   - ssContributionRate = 34.75%
- *   - nominalWageGrowthFactor = real productivity growth compounded with consumer inflation
- *
- * SOCIAL SECURITY EXPENDITURE:
- *   pensionRecipients * avgPension * nominalWageGrowthFactor
- *   + calibrated non-pension expenditure residual
- *   Where:
- *   - avgPension = 8,120 EUR/year (580 * 14 months)
- *   - residual is calibrated so 2024 aggregate SS balance matches CFP's
- *     reported 5.595B EUR surplus excluding ESF/FEAD
- *
- * HEALTHCARE COSTS:
- *   Sum over all ages: population[age] * normalizedBaseCost * ageMultiplier[age] * healthcareCostGrowthFactor
- *   Where:
- *   - official per-capita cost = 2,730.81 EUR/year
- *   - normalizedBaseCost = official per-capita cost / opening-population-weighted age multiplier
- *   - ageMultiplier: 0.6 (0-19), 1.0 (20-64), 2.5 (65-74), 4.0 (75-84), 6.0 (85+)
- *
- * SUSTAINABILITY INDEX:
- *   100 * (1 - totalBurden / (GDP * 0.40))
- *   Where totalBurden = ssDeficit + publicHealthcareCost
- *   40% of GDP threshold = system breaking point (index = 0)
- *   Capped at 0 (critical) to 100 (fully sustainable)
- *
- * MONETARY OUTPUTS:
- *   All returned EUR values are inflation-adjusted to constant 2024 euros.
- *   The model first projects nominal flows, then deflates them by consumer
- *   inflation so charts do not overstate long-run costs just from price level changes.
+ * Calculate fiscal and healthcare metrics. The 2026 opening stock is matched
+ * exactly to 2025 official aggregates; future baseline paths use the European
+ * Commission's published spending-to-GDP projections. Demographic scenarios
+ * vary those paths through their relative pension and healthcare exposures.
  */
 const calculateEconomicMetrics = (
   population: AgeGroup[],
   retirementAge: number,
-  yearsFromBase: number,
+  referenceRetirementAge: number,
+  year: number,
   workforceEntryAgeShift: number,
-  unemploymentAdjustment: number,
-  employmentRates = buildEmploymentRates(workforceEntryAgeShift, unemploymentAdjustment, retirementAge)
+  employmentRateAdjustment: number,
+  employmentRates = buildEmploymentRates(workforceEntryAgeShift, employmentRateAdjustment, retirementAge)
 ): EconomicMetrics => {
-  // Constants from economicParams.json
-  const ssRate = economicParams.socialSecurity.contributionRates.total; // 0.3475
-  const baseAvgSalary = economicParams.wages.averageGrossSalary2024 *
-                        economicParams.wages.annualMultiplier; // 1505 * 14 = 21070
-  const baseAvgPension = economicParams.socialSecurity.averagePension2024 *
-                         economicParams.wages.annualMultiplier; // 580 * 14 = 8120
-  // Healthcare spending is stored directly in EUR per inhabitant
-  const usdToEur = economicParams.healthcare.usdToEur;
-  const allAgeHealthcareCost = economicParams.healthcare.perCapitaSpending2024 * usdToEur;
-  const baseHealthcareCost = allAgeHealthcareCost / BASE_HEALTHCARE_WEIGHTED_MULTIPLIER;
-  const realWageGrowth = economicParams.productivity.annualGrowthRate; // 0.015
-  const healthcareInflation = economicParams.healthcare.annualInflation;
-  const consumerInflation = economicParams.inflation.annualRate;
-
-  // Growth factors used for nominal projections before deflating to 2024 euros.
-  const realWageGrowthFactor = Math.pow(1 + realWageGrowth, yearsFromBase);
-  const healthcareCostGrowthFactor = Math.pow(1 + healthcareInflation, yearsFromBase);
-  const consumerInflationFactor = Math.pow(1 + consumerInflation, yearsFromBase);
-  const nominalWageGrowthFactor = realWageGrowthFactor * consumerInflationFactor;
-  const toReal2024Euros = (nominalValue: number) => nominalValue / consumerInflationFactor;
-
-  // Calculate actual workforce and working-age population
-  // Apply workforce entry age shift and unemployment adjustment
-  let actualWorkforce = 0;
+  const rawWorkforce = getRawWorkforce(population, employmentRates);
+  const actualWorkforce = Math.round(
+    rawWorkforce * WORKFORCE_CALIBRATION_FACTOR
+  );
   let workingAgePop = 0;
 
   for (const group of population) {
-    const workingShare = getWorkingShare(group.age, retirementAge);
-    workingAgePop += group.total * workingShare;
-
-    // Include all employed adults, including post-retirement workers.
-    if (group.age >= 15) {
-      actualWorkforce += group.total * employmentRates[Math.min(group.age, MAX_AGE)];
-    }
+    workingAgePop += group.total * getWorkingShare(group.age, retirementAge);
   }
 
-  actualWorkforce = Math.round(actualWorkforce);
   workingAgePop = Math.round(workingAgePop);
-
-  // Calculate retired population and pension recipients.
-  // Employed retirees are excluded from pension payments.
-  let retiredPop = 0;
-  let actualPensioners = 0;
-  for (const group of population) {
-    const retiredShare = getRetiredShare(group.age, retirementAge);
-    if (retiredShare > 0) {
-      const retiredGroupPop = group.total * retiredShare;
-      const pensionRecipientShare = getPensionRecipientShare(
-        group.age,
-        retirementAge,
-        employmentRates[Math.min(group.age, MAX_AGE)]
-      );
-      retiredPop += retiredGroupPop;
-      actualPensioners += group.total * pensionRecipientShare;
-    }
-  }
-  retiredPop = Math.round(retiredPop);
-  actualPensioners = Math.round(actualPensioners);
-
-  // Social Security calculations in nominal euros.
-  const avgSalary = baseAvgSalary * nominalWageGrowthFactor;
-  const avgPension = baseAvgPension * nominalWageGrowthFactor; // Pensions indexed to wages
-
-  const nominalTotalSSContributions = actualWorkforce * avgSalary * ssRate;
-  const nominalTotalPensionPayments = actualPensioners * avgPension;
   const totalPopulation = population.reduce((sum, group) => sum + group.total, 0);
-  const nominalOtherSSExpenditure = totalPopulation * BASE_OTHER_SS_EXPENDITURE_PER_CAPITA * nominalWageGrowthFactor;
-  const nominalTotalSSExpenditure = nominalTotalPensionPayments + nominalOtherSSExpenditure;
-  const nominalSSBalance = nominalTotalSSContributions - nominalTotalSSExpenditure;
-  const totalSSContributions = toReal2024Euros(nominalTotalSSContributions);
-  const totalPensionPayments = toReal2024Euros(nominalTotalPensionPayments);
-  const ssBalance = toReal2024Euros(nominalSSBalance);
-  const ssBalancePerWorker = actualWorkforce > 0 ? ssBalance / actualWorkforce : 0;
+  const productivityGrowthFactor = getProductivityGrowthFactor(year);
+  const workforceRatio =
+    actualWorkforce / economicParams.employment.officialEmployed15Plus2025;
+  const gdpProxy =
+    economicParams.productivity.gdp2025 *
+    workforceRatio *
+    productivityGrowthFactor;
+  const gdpRatio = gdpProxy / economicParams.productivity.gdp2025;
 
-  // Healthcare calculations in nominal euros, then converted to constant 2024 euros.
-  let nominalTotalHealthcareCost = 0;
-  for (const group of population) {
-    const multiplier = getHealthcareMultiplier(group.age);
-    const costPerPerson = baseHealthcareCost * multiplier * healthcareCostGrowthFactor;
-    nominalTotalHealthcareCost += group.total * costPerPerson;
-  }
+  const referencePopulation = getReferencePopulation(year);
+  const referenceEmploymentRates = buildEmploymentRates(
+    0,
+    0,
+    referenceRetirementAge
+  );
+  const referenceWorkforce =
+    getRawWorkforce(referencePopulation, referenceEmploymentRates) *
+    WORKFORCE_CALIBRATION_FACTOR;
+  const pensionReferenceRatio = (
+    (getPensionExposure(population, retirementAge) / actualWorkforce) /
+    (
+      getPensionExposure(referencePopulation, referenceRetirementAge) /
+      referenceWorkforce
+    )
+  ) / BASE_PENSION_REFERENCE_RATIO;
+  const healthcareReferenceRatio = (
+    (getHealthcareExposure(population) / actualWorkforce) /
+    (getHealthcareExposure(referencePopulation) / referenceWorkforce)
+  ) / BASE_HEALTHCARE_REFERENCE_RATIO;
+  const economicYear = year === BASE_YEAR ? 2025 : year;
 
-  // Public healthcare = government-funded share from Eurostat SHA 2024
-  const publicShare = economicParams.healthcare.publicShare;
-  const totalHealthcareCost = toReal2024Euros(nominalTotalHealthcareCost);
-  const publicHealthcareCost = totalHealthcareCost * publicShare;
+  const publicPensionShareOfGdp = interpolateKeyframes(
+    economicParams.publicPensions.spendingShareOfGdpKeyframes,
+    economicYear
+  ) / 100;
+  const publicPensionSpending =
+    gdpProxy * publicPensionShareOfGdp * pensionReferenceRatio;
 
+  const publicHealthcareShareOfGdp = interpolateKeyframes(
+    economicParams.healthcare.publicSpendingShareOfGdpKeyframes,
+    economicYear
+  ) / 100;
+  const publicHealthcareCost =
+    gdpProxy * publicHealthcareShareOfGdp * healthcareReferenceRatio;
+  const totalHealthcareCost =
+    publicHealthcareCost / economicParams.healthcare.publicShare;
   const healthcareCostPerWorker = actualWorkforce > 0
     ? totalHealthcareCost / actualWorkforce
     : 0;
 
-  // Combined fiscal burden uses only public healthcare (government obligation)
-  const ssDeficit = Math.max(0, -ssBalance);
-  const totalBurdenPerWorker = actualWorkforce > 0
-    ? (ssDeficit + publicHealthcareCost) / actualWorkforce
+  const officialSS = economicParams.socialSecurity.officialExecution2025;
+  const totalSSContributions = officialSS.contributions * gdpRatio;
+  const otherSSRevenue =
+    (officialSS.effectiveRevenue - officialSS.contributions) * gdpRatio;
+  const ssPensionExpenditure =
+    publicPensionSpending *
+    (officialSS.pensionExpenditure /
+      economicParams.socialSecurity.totalPublicPensionExpenditure2025);
+  const otherSSExpenditure =
+    (officialSS.effectiveExpenditure - officialSS.pensionExpenditure) *
+    (totalPopulation / BASE_TOTAL_POPULATION) *
+    productivityGrowthFactor;
+  const ssBalance =
+    totalSSContributions +
+    otherSSRevenue -
+    ssPensionExpenditure -
+    otherSSExpenditure;
+  const ssBalancePerWorker =
+    actualWorkforce > 0 ? ssBalance / actualWorkforce : 0;
+
+  const publicAgeRelatedSpending =
+    publicPensionSpending + publicHealthcareCost;
+  const ageRelatedSpendingPerWorker = actualWorkforce > 0
+    ? publicAgeRelatedSpending / actualWorkforce
     : 0;
-
-  // Sustainability index (0-100)
-  // Measures total fiscal burden (SS deficit + healthcare) against economic capacity (GDP)
-  // 100 = burden is minimal relative to GDP
-  // 0 = critical (burden exceeds 40% of GDP)
-  //
-  // Formula: sustainabilityIndex = 100 * (1 - totalBurden / (GDP * maxBurdenThreshold))
-  // Where maxBurdenThreshold = 0.40 (40% of GDP is considered the breaking point)
-  const gdpPerWorker = economicParams.productivity.gdpPerWorker2024; // 54,582.87 EUR
-  const nominalGdpProxy = actualWorkforce * gdpPerWorker * nominalWageGrowthFactor;
-  const gdpProxy = toReal2024Euros(nominalGdpProxy);
-  const totalFiscalBurden = ssDeficit + publicHealthcareCost;
-
-  // 40% of GDP as max sustainable burden (SS + healthcare combined)
-  // At this level, the system is considered critically unsustainable
-  const maxSustainableBurdenRatio = 0.40;
-  let sustainabilityIndex = 0; // Default to critical (0) when GDP is zero
-  if (gdpProxy > 0) {
-    const burdenAsShareOfGDP = totalFiscalBurden / gdpProxy;
-    sustainabilityIndex = Math.max(0, Math.min(100,
-      100 * (1 - burdenAsShareOfGDP / maxSustainableBurdenRatio)
-    ));
-  }
-
-  // Labor utilization rate (includes post-retirement workers, so can exceed 1.0)
+  const ageRelatedSpendingShareOfGdp = gdpProxy > 0
+    ? (publicAgeRelatedSpending / gdpProxy) * 100
+    : 0;
   const laborUtilizationRate = workingAgePop > 0 ? actualWorkforce / workingAgePop : 0;
 
   return {
     actualWorkforce,
     laborUtilizationRate,
     totalSSContributions,
-    totalPensionPayments,
+    publicPensionSpending,
     ssBalance,
     ssBalancePerWorker,
     totalHealthcareCost,
     publicHealthcareCost,
     healthcareCostPerWorker,
-    totalBurdenPerWorker,
-    sustainabilityIndex,
+    ageRelatedSpendingPerWorker,
+    ageRelatedSpendingShareOfGdp,
   };
 };
 
@@ -924,54 +665,55 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
   if (params.mortalityImprovement.female < -0.05 || params.mortalityImprovement.female > 0.05) {
     throw new Error(`Invalid female mortality improvement: ${params.mortalityImprovement.female}. Must be between -0.05 and 0.05.`);
   }
+  if (params.workforceEntryAgeShift < -10 || params.workforceEntryAgeShift > 10) {
+    throw new Error(
+      `Invalid workforce entry shift: ${params.workforceEntryAgeShift}. ` +
+      'Must be between -10 and 10 years.'
+    );
+  }
+  if (
+    params.employmentRateAdjustment < -0.5 ||
+    params.employmentRateAdjustment > 0.95
+  ) {
+    throw new Error(
+      `Invalid employment-rate adjustment: ${params.employmentRateAdjustment}. ` +
+      'Must be between -0.5 and 0.95.'
+    );
+  }
+  if (params.retirementAgePath) {
+    if (
+      params.retirementAgePath.length < 2 ||
+      params.retirementAgePath.some(
+        (keyframe, index) =>
+          keyframe.value < 50 ||
+          keyframe.value > 80 ||
+          (index > 0 && keyframe.year <= params.retirementAgePath![index - 1].year)
+      )
+    ) {
+      throw new Error('Invalid retirement-age path.');
+    }
+  }
 
   let currentPop = expandInitialPopulation();
   const results: YearData[] = [];
-  const baseYear = BASE_YEAR;
-  const employmentRates = buildEmploymentRates(
-    params.workforceEntryAgeShift,
-    params.unemploymentAdjustment,
-    params.retirementAge
-  );
 
   for (let year = startYear; year <= endYear; year++) {
-    const yearsFromBase = year - baseYear;
-    const fertilityAssumption = getAnnualFertilityAssumption(year, params);
-    const annualFertilityRates = buildAnnualFertilityRates(
-      fertilityAssumption.totalFertilityRate,
-      fertilityAssumption.meanAgeAtChildbirth
+    const annualRetirementAge = getAnnualRetirementAge(year, params);
+    const referenceRetirementAge = params.retirementAgePath
+      ? annualRetirementAge
+      : interpolateKeyframes(
+          PORTUGAL_STATUTORY_RETIREMENT_AGE_PATH,
+          year
+        );
+    const employmentRates = buildEmploymentRates(
+      params.workforceEntryAgeShift,
+      params.employmentRateAdjustment,
+      annualRetirementAge
     );
+    const annualFertilityRates = getAnnualFertilityRates(year, params);
+    const annualTotalFertilityRate = annualFertilityRates
+      .reduce((total, rate) => total + rate, 0);
     const annualNetMigration = Math.round(getAnnualNetMigration(year, startYear, params));
-    const migrationAmounts = params.projectionProfile
-      ? buildProjectedTransitionMigrationAmounts(
-          annualNetMigration,
-          year,
-          params.projectionProfile.migration
-        )
-      : buildTransitionMigrationAmounts(annualNetMigration);
-    const maleQxByAge = Array(OPEN_AGE_MAX + 1);
-    const femaleQxByAge = Array(OPEN_AGE_MAX + 1);
-    const maleHalfYearQxByAge = Array(OPEN_AGE_MAX + 1);
-    const femaleHalfYearQxByAge = Array(OPEN_AGE_MAX + 1);
-
-    for (let age = 0; age <= OPEN_AGE_MAX; age++) {
-      const projectedMaleFactor = getProjectionMortalityFactor(year, age, 'male', params);
-      const projectedFemaleFactor = getProjectionMortalityFactor(year, age, 'female', params);
-      const maleMortalityFactor = projectedMaleFactor ?? Math.pow(
-        1 - getAgeAdjustedMortalityImprovement(age, params.mortalityImprovement.male),
-        yearsFromBase
-      );
-      const femaleMortalityFactor = projectedFemaleFactor ?? Math.pow(
-        1 - getAgeAdjustedMortalityImprovement(age, params.mortalityImprovement.female),
-        yearsFromBase
-      );
-      const maleQx = clampMortalityRate(getOpenAgeBaseQx(age, 'male') * maleMortalityFactor);
-      const femaleQx = clampMortalityRate(getOpenAgeBaseQx(age, 'female') * femaleMortalityFactor);
-      maleQxByAge[age] = maleQx;
-      femaleQxByAge[age] = femaleQx;
-      maleHalfYearQxByAge[age] = getHalfYearMortalityRate(maleQx);
-      femaleHalfYearQxByAge[age] = getHalfYearMortalityRate(femaleQx);
-    }
 
     // 1. Calculate Statistics for current year
     let childPop = 0;
@@ -990,8 +732,8 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
         standardOlderAgePop += group.total;
       }
       if (group.age >= 15) {
-        workingPop += group.total * getWorkingShare(group.age, params.retirementAge);
-        retiredPop += group.total * getRetiredShare(group.age, params.retirementAge);
+        workingPop += group.total * getWorkingShare(group.age, annualRetirementAge);
+        retiredPop += group.total * getRetiredShare(group.age, annualRetirementAge);
       }
     }
     workingPop = Math.round(workingPop);
@@ -1015,13 +757,14 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       }
     }
 
-    // Calculate economic metrics with workforce entry and unemployment adjustments
+    // Calculate economic metrics with workforce-entry and employment-rate adjustments.
     const economic = calculateEconomicMetrics(
       currentPop,
-      params.retirementAge,
-      yearsFromBase,
+      annualRetirementAge,
+      referenceRetirementAge,
+      year,
       params.workforceEntryAgeShift,
-      params.unemploymentAdjustment,
+      params.employmentRateAdjustment,
       employmentRates
     );
 
@@ -1035,167 +778,140 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       oldAgeDependencyRatio: standardWorkingAgePop > 0 ? (standardOlderAgePop / standardWorkingAgePop) * 100 : 0,
       medianAge,
       assumptions: {
-        fertilityRate: fertilityAssumption.totalFertilityRate,
+        fertilityRate: annualTotalFertilityRate,
         netMigration: annualNetMigration,
+        retirementAge: annualRetirementAge,
       },
       economic
     });
 
+    if (year === endYear) {
+      break;
+    }
+
     // 2. Evolve population for next year using cohort-component method
-    const nextPop: AgeGroup[] = [];
+    const migrationAmounts = params.projectionProfile
+      ? {
+          maleByTargetAge: [...getEuropopMigrationAmounts(
+            year,
+            params.projectionProfile.migration,
+            'male'
+          )],
+          femaleByTargetAge: [...getEuropopMigrationAmounts(
+            year,
+            params.projectionProfile.migration,
+            'female'
+          )],
+        }
+      : buildTransitionMigrationAmounts(annualNetMigration);
+    const maleSurvivalFactors = getAnnualSurvivalFactors(year, 'male', params);
+    const femaleSurvivalFactors = getAnnualSurvivalFactors(year, 'female', params);
+    const [maleNewbornCoefficient, femaleNewbornCoefficient] =
+      getAnnualNewbornCoefficients(year, params);
 
-    // Pre-calculate all migration amounts by transition source age before
-    // fertility and mortality. The profile is stored by end-of-transition age,
-    // so age x in the profile is applied to the cohort age x - 1 at start year.
-    let totalMigrationDistributed = 0;
-    const maleMigrationByAge = [...migrationAmounts.maleBySourceAge];
-    const femaleMigrationByAge = [...migrationAmounts.femaleBySourceAge];
-
-    for (const group of currentPop) {
-      if (group.age >= MAX_AGE) {
-        continue;
-      }
-
-      const cappedMaleMigration = capNegativeMigrationToAvailablePopulation(
-        maleMigrationByAge[group.age],
-        group.male,
-        maleQxByAge[group.age]
-      );
-      const cappedFemaleMigration = capNegativeMigrationToAvailablePopulation(
-        femaleMigrationByAge[group.age],
-        group.female,
-        femaleQxByAge[group.age]
-      );
-
-      maleMigrationByAge[group.age] = cappedMaleMigration;
-      femaleMigrationByAge[group.age] = cappedFemaleMigration;
-    }
-
-    // Calculate Births using Age-Specific Fertility Rates (ASFR)
+    // ASFR is defined against person-years lived between exact ages x and x+1.
+    // With a 1 January stock, exposure at completed age x is approximated by
+    // the mean of the cohorts aged x-1 and x at the start of the year.
     let totalBirths = 0;
-    for (const group of currentPop) {
-      if (group.age >= 15 && group.age <= 49) {
-        const migrationFemale = femaleMigrationByAge[group.age] || 0;
-        const femaleExposure = Math.max(0, group.female + migrationFemale / 2);
-        totalBirths += femaleExposure * annualFertilityRates[group.age];
+    for (let age = 1; age <= MAX_AGE; age++) {
+      const fertilityRate = annualFertilityRates[age] || 0;
+      if (fertilityRate > 0) {
+        const femaleExposure =
+          (currentPop[age - 1].female + currentPop[age].female) / 2;
+        totalBirths += femaleExposure * fertilityRate;
       }
     }
-
+    if (params.projectionProfile) {
+      totalBirths *= getEuropopFertilityExposureCalibration(
+        year,
+        params.projectionProfile.fertility
+      );
+    }
     const births = Math.round(totalBirths);
-
-    // Sex ratio at birth: ~105 males per 100 females
-    const sexRatio = fertilityData.sexRatioAtBirth.ratio;
-    const maleBirths = Math.floor(births * (sexRatio / (1 + sexRatio)));
-    const femaleBirths = births - maleBirths;
-    const newbornMaleDeaths = Math.round(
-      maleBirths * maleHalfYearQxByAge[0]
+    const survivingMaleBirths = Math.round(births * maleNewbornCoefficient);
+    const survivingFemaleBirths = Math.round(births * femaleNewbornCoefficient);
+    const ageZeroMaleMigration = capNegativeMigrationToAvailablePopulation(
+      migrationAmounts.maleByTargetAge[0],
+      survivingMaleBirths
     );
-    const newbornFemaleDeaths = Math.round(
-      femaleBirths * femaleHalfYearQxByAge[0]
+    const ageZeroFemaleMigration = capNegativeMigrationToAvailablePopulation(
+      migrationAmounts.femaleByTargetAge[0],
+      survivingFemaleBirths
     );
-    const survivingMaleBirths = Math.max(0, maleBirths - newbornMaleDeaths);
-    const survivingFemaleBirths = Math.max(0, femaleBirths - newbornFemaleDeaths);
-    const cappedAgeZeroMaleMigration = Math.max(
-      migrationAmounts.maleAgeZero,
-      -survivingMaleBirths
-    );
-    const cappedAgeZeroFemaleMigration = Math.max(
-      migrationAmounts.femaleAgeZero,
-      -survivingFemaleBirths
-    );
-    const ageZeroMigrantDeathsMale = cappedAgeZeroMaleMigration > 0
-      ? Math.round(cappedAgeZeroMaleMigration * maleHalfYearQxByAge[0])
-      : 0;
-    const ageZeroMigrantDeathsFemale = cappedAgeZeroFemaleMigration > 0
-      ? Math.round(cappedAgeZeroFemaleMigration * femaleHalfYearQxByAge[0])
-      : 0;
-    const ageZeroMale = Math.max(
-      0,
-      survivingMaleBirths + cappedAgeZeroMaleMigration - ageZeroMigrantDeathsMale
-    );
-    const ageZeroFemale = Math.max(
-      0,
-      survivingFemaleBirths + cappedAgeZeroFemaleMigration - ageZeroMigrantDeathsFemale
-    );
-
-    // Age 0 cohort (newborns)
-    nextPop.push({
+    const ageZeroMale = survivingMaleBirths + ageZeroMaleMigration;
+    const ageZeroFemale = survivingFemaleBirths + ageZeroFemaleMigration;
+    const nextPop: AgeGroup[] = [{
       age: 0,
       male: ageZeroMale,
       female: ageZeroFemale,
       total: ageZeroMale + ageZeroFemale
-    });
+    }];
 
-    // Track existing 110+ population for the internal open-ended bucket.
-    let openAgeMale = 0;
-    let openAgeFemale = 0;
+    let totalDeaths =
+      births - survivingMaleBirths - survivingFemaleBirths;
+    let totalMigrationDistributed =
+      ageZeroMaleMigration + ageZeroFemaleMigration;
 
-    // Track total deaths and migration for population balance validation
-    let totalDeaths = newbornMaleDeaths + newbornFemaleDeaths +
-                      ageZeroMigrantDeathsMale + ageZeroMigrantDeathsFemale;
-    totalMigrationDistributed += cappedAgeZeroMaleMigration + cappedAgeZeroFemaleMigration;
+    for (let targetAge = 1; targetAge < MAX_AGE; targetAge++) {
+      const source = currentPop[targetAge - 1];
+      const survivingMale = Math.round(
+        source.male * maleSurvivalFactors[targetAge - 1]
+      );
+      const survivingFemale = Math.round(
+        source.female * femaleSurvivalFactors[targetAge - 1]
+      );
+      const migrationMale = capNegativeMigrationToAvailablePopulation(
+        migrationAmounts.maleByTargetAge[targetAge],
+        survivingMale
+      );
+      const migrationFemale = capNegativeMigrationToAvailablePopulation(
+        migrationAmounts.femaleByTargetAge[targetAge],
+        survivingFemale
+      );
+      const male = survivingMale + migrationMale;
+      const female = survivingFemale + migrationFemale;
 
-    // Age existing population with mortality and migration
-    for (let i = 0; i < currentPop.length; i++) {
-      const group = currentPop[i];
-
-      // Get migration for this age group
-      const migrationMale = group.age < MAX_AGE ? maleMigrationByAge[group.age] : 0;
-      const migrationFemale = group.age < MAX_AGE ? femaleMigrationByAge[group.age] : 0;
-
-      const maleQx = maleQxByAge[group.age];
-      const femaleQx = femaleQxByAge[group.age];
-      const halfYearMaleQx = maleHalfYearQxByAge[group.age];
-      const halfYearFemaleQx = femaleHalfYearQxByAge[group.age];
-
-      // Emigrants are assumed to leave mid-year on average, so only half of their
-      // annual mortality exposure remains in the resident population.
-      const residentMaleExposure = Math.max(0, group.male + Math.min(0, migrationMale) / 2);
-      const residentFemaleExposure = Math.max(0, group.female + Math.min(0, migrationFemale) / 2);
-      const residentDeathsMale = Math.round(residentMaleExposure * maleQx);
-      const residentDeathsFemale = Math.round(residentFemaleExposure * femaleQx);
-
-      // Immigrants arrive through the year and only face half-year mortality.
-      const migrantDeathsMale = migrationMale > 0
-        ? Math.round(migrationMale * halfYearMaleQx)
-        : 0;
-      const migrantDeathsFemale = migrationFemale > 0
-        ? Math.round(migrationFemale * halfYearFemaleQx)
-        : 0;
-
-      totalDeaths += residentDeathsMale + residentDeathsFemale + migrantDeathsMale + migrantDeathsFemale;
-
-      const rawSurvivingMale = group.male - residentDeathsMale + migrationMale - migrantDeathsMale;
-      const rawSurvivingFemale = group.female - residentDeathsFemale + migrationFemale - migrantDeathsFemale;
-      const survivingMale = Math.max(0, rawSurvivingMale);
-      const survivingFemale = Math.max(0, rawSurvivingFemale);
-      const appliedMigrationMale = migrationMale + (survivingMale - rawSurvivingMale);
-      const appliedMigrationFemale = migrationFemale + (survivingFemale - rawSurvivingFemale);
-      totalMigrationDistributed += appliedMigrationMale + appliedMigrationFemale;
-
-      // Age 109 survivors and existing 110+ survivors go to the 110+ aggregate.
-      if (group.age >= OPEN_AGE_MAX - 1) {
-        openAgeMale += survivingMale;
-        openAgeFemale += survivingFemale;
-      } else {
-        nextPop.push({
-          age: group.age + 1,
-          male: survivingMale,
-          female: survivingFemale,
-          total: survivingMale + survivingFemale
-        });
-      }
-    }
-
-    // Add age 110+ aggregate group if any survivors
-    if (openAgeMale + openAgeFemale > 0) {
       nextPop.push({
-        age: OPEN_AGE_MAX,
-        male: openAgeMale,
-        female: openAgeFemale,
-        total: openAgeMale + openAgeFemale
+        age: targetAge,
+        male,
+        female,
+        total: male + female,
       });
+
+      totalDeaths += source.male - survivingMale +
+                     source.female - survivingFemale;
+      totalMigrationDistributed += migrationMale + migrationFemale;
     }
+
+    const openSourceMale =
+      currentPop[MAX_AGE - 1].male + currentPop[MAX_AGE].male;
+    const openSourceFemale =
+      currentPop[MAX_AGE - 1].female + currentPop[MAX_AGE].female;
+    const survivingOpenMale = Math.round(
+      openSourceMale * maleSurvivalFactors[MAX_AGE - 1]
+    );
+    const survivingOpenFemale = Math.round(
+      openSourceFemale * femaleSurvivalFactors[MAX_AGE - 1]
+    );
+    const openMaleMigration = capNegativeMigrationToAvailablePopulation(
+      migrationAmounts.maleByTargetAge[MAX_AGE],
+      survivingOpenMale
+    );
+    const openFemaleMigration = capNegativeMigrationToAvailablePopulation(
+      migrationAmounts.femaleByTargetAge[MAX_AGE],
+      survivingOpenFemale
+    );
+    const openMale = survivingOpenMale + openMaleMigration;
+    const openFemale = survivingOpenFemale + openFemaleMigration;
+    nextPop.push({
+      age: MAX_AGE,
+      male: openMale,
+      female: openFemale,
+      total: openMale + openFemale,
+    });
+    totalDeaths += openSourceMale - survivingOpenMale +
+                   openSourceFemale - survivingOpenFemale;
+    totalMigrationDistributed += openMaleMigration + openFemaleMigration;
 
     // Population balance validation (development check). All cohort-level
     // rounding is tracked explicitly, so only a one-person tolerance is needed.

@@ -12,7 +12,7 @@ import { YearData } from '../types';
 import InfoTooltip from './InfoTooltip';
 import useChartContainerReady from './useChartContainerReady';
 
-export type EconomicChartType = 'ssBalance' | 'burden' | 'sustainability';
+export type EconomicChartType = 'ssBalance' | 'burden' | 'spendingShare';
 
 interface Props {
   fullHistory: YearData[];
@@ -27,8 +27,8 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
   const chartData = fullHistory.map(d => ({
     year: d.year,
     ssBalance: d.economic.ssBalance / 1e9, // Convert to billions
-    burden: d.economic.totalBurdenPerWorker,
-    sustainability: d.economic.sustainabilityIndex,
+    burden: d.economic.ageRelatedSpendingPerWorker,
+    spendingShare: d.economic.ageRelatedSpendingShareOfGdp,
   }));
 
   const getChartConfig = () => {
@@ -37,28 +37,28 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         return {
           title: 'SS Balance',
           dataKey: 'ssBalance',
-          formatter: (v: number) => `${v.toFixed(1)}B 2024 EUR`,
+          formatter: (v: number) => `${v.toFixed(1)}B 2025 EUR`,
           stroke: '#fbbf24',
           showZeroLine: true,
           yDomain: undefined as [number, number] | undefined,
         };
       case 'burden':
         return {
-          title: 'Burden/Worker',
+          title: 'Pensions + Health / Worker',
           dataKey: 'burden',
-          formatter: (v: number) => `${v.toLocaleString()} 2024 EUR`,
+          formatter: (v: number) => `${v.toLocaleString()} 2025 EUR`,
           stroke: '#f43f5e',
           showZeroLine: false,
           yDomain: undefined as [number, number] | undefined,
         };
-      case 'sustainability':
+      case 'spendingShare':
         return {
-          title: 'Sustainability',
-          dataKey: 'sustainability',
-          formatter: (v: number) => `${v.toFixed(0)}`,
-          stroke: '#10b981',
+          title: 'Pensions + Health / GDP',
+          dataKey: 'spendingShare',
+          formatter: (v: number) => `${v.toFixed(1)}%`,
+          stroke: '#06b6d4',
           showZeroLine: false,
-          yDomain: [0, 100] as [number, number],
+          yDomain: undefined as [number, number] | undefined,
         };
     }
   };
@@ -87,17 +87,17 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
           }`}
         >
-          Burden
+          Per Worker
         </button>
         <button
-          onClick={() => onChartTypeChange('sustainability')}
+          onClick={() => onChartTypeChange('spendingShare')}
           className={`min-w-0 flex-1 rounded px-2 py-1 text-[11px] transition-colors sm:flex-none sm:py-0.5 sm:text-[10px] ${
-            chartType === 'sustainability'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+            chartType === 'spendingShare'
+              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
               : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
           }`}
         >
-          Sustainability
+          % GDP
         </button>
       </div>
 
@@ -105,10 +105,10 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
         {config.title} Evolution
         <InfoTooltip content={
           chartType === 'ssBalance'
-            ? "Inflation-adjusted 2024 EUR. Social Security balance: contributions minus pension payments. Negative values indicate deficit requiring government subsidies or debt."
+            ? "Constant 2025 EUR. The opening Social Security balance matches CFP's 2025 execution; later values are model estimates that scale revenue with workforce/GDP and non-pension expenditure with population/productivity."
             : chartType === 'burden'
-            ? "Inflation-adjusted 2024 EUR. Total burden per worker: combined SS deficit and healthcare costs divided by workforce. Shows individual worker's share of supporting the system."
-            : "Sustainability index (0-100): compares inflation-adjusted total burden with inflation-adjusted GDP capacity. 100 = fully sustainable, 0 = total burden exceeds 40% of GDP."
+            ? "Constant 2025 EUR. Public pension expenditure plus public healthcare divided by the modeled employed workforce."
+            : "Public pension expenditure plus public healthcare as a percentage of modeled GDP. No subjective threshold is imposed."
         } />
       </h2>
 

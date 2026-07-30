@@ -37,8 +37,9 @@ pnpm preview   # alias for pnpm start
 - `pnpm` is required. The repo has a `preinstall` guard and declares `pnpm@10.27.0` in `package.json`.
 - The app requires JavaScript in the browser.
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID` is optional. When present, the app loads Google Analytics and tracks page views plus simulator interactions.
-- Runtime data lives in `data/`: revised 2026 opening population, 2024 detailed demographic rates, EUROPOP2025 projection paths, and economic assumptions.
-- The simulation displays age `100+` as an aggregate cohort, but internally ages it through a `110+` open bucket and logs a console warning if the population balance error exceeds one person in a projected year.
+- Runtime data lives in `data/`: the revised 2026 opening population, an exact annual EUROPOP2025 snapshot, and officially calibrated economic assumptions.
+- Refresh EUROPOP data with `pnpm data:update:europop`. The generator rejects a snapshot unless every published cohort transition and birth total reproduces with zero rounding error.
+- Age `100+` is an open cohort, matching Eurostat's published projection structure. The engine checks population balance every projected year in development.
 - Deployment metadata is included for Vercel as a Next.js app.
 
 ## Data Baseline
@@ -52,7 +53,7 @@ pnpm preview   # alias for pnpm start
 | Baseline net migration assumption (2026) | +132,517 |
 | Normal retirement age (2026) | 66 years, 9 months |
 
-Preset demographic paths use EUROPOP2025 baseline and sensitivity assumptions. Economic outputs remain illustrative and are reported in constant 2024 EUR.
+Preset demographic paths use exact annual EUROPOP2025 baseline and sensitivity assumptions. Presets also follow the enacted 2027 retirement age and the EC current-policy path thereafter. The 2026 fiscal opening matches CFP 2025 execution and Eurostat SHA aggregates; later monetary outputs are reported in constant 2025 EUR. EC fiscal reference paths end in 2070, so 2071–2100 retains the final published spending share and varies it with each scenario's demographic exposure.
 
 ## Architecture
 

@@ -44,8 +44,8 @@ const getBarColor = (status: PopulationStatus) => {
 const getStatusLabel = (status: PopulationStatus) => {
   switch (status) {
     case 'child': return 'Youth (0-14)';
-    case 'working': return 'Working Age';
-    case 'retired': return 'Retired';
+    case 'working': return 'Age 15 to retirement threshold';
+    case 'retired': return 'Retirement-age population';
   }
 };
 
@@ -90,7 +90,7 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
     <div className="flex h-full w-full min-w-0 flex-col">
       <h2 className="mb-2 flex flex-wrap items-center justify-center gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 sm:text-sm">
         Population by Age ({data.year})
-        <InfoTooltip content="Age pyramid showing population distribution. Cyan = youth (0-14), Green = working age, Rose = retired. A healthy pyramid has a wide base; inverted pyramids indicate aging populations." />
+        <InfoTooltip content="Age pyramid showing population distribution. Colors mark ages 0-14, ages 15 to the selected retirement threshold, and the retirement-age population. They do not assert individual employment or pension status." />
       </h2>
       <div className="relative min-h-[300px] min-w-0 flex-grow">
         <svg
@@ -150,7 +150,7 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
             strokeDasharray="3 5"
           />
           <text x={PLOT_RIGHT + 6} y={getAgeY(15) + 3} fill="#06b6d4" fontSize={9}>
-            Working Age
+            Age 15+
           </text>
 
           <line
@@ -162,7 +162,7 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
             strokeDasharray="3 5"
           />
           <text x={PLOT_RIGHT + 6} y={getAgeY(retirementAge) + 3} fill="#fbbf24" fontSize={9}>
-            Retire
+            Retirement age
           </text>
 
           {medianAgeY !== null && medianAge !== undefined && (
@@ -196,10 +196,10 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
           <div className="h-3 w-3 bg-cyan-500"></div> Youth (0-14)
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 bg-emerald-500"></div> Working Age
+          <div className="h-3 w-3 bg-emerald-500"></div> 15 to retirement age
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 bg-rose-500"></div> Retired
+          <div className="h-3 w-3 bg-rose-500"></div> Retirement age+
         </div>
       </div>
     </div>

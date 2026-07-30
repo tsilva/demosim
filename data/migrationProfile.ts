@@ -4,9 +4,8 @@
 // Ages are end-of-transition ages: a residual observed at age 35 in the
 // 2025-01-01 stock is applied to the cohort that was age 34 at 2024-01-01.
 // The headline migration value is the official INE 2024 net migration component.
-// simulation.ts applies a separate base-year stock reconciliation so the first
-// projection step can preserve life-expectancy qx and still reconcile official
-// births, deaths, migration, and population stock.
+// This fallback profile is used only after a user edits a preset migration
+// control; untouched presets use exact annual EUROPOP2025 age/sex amounts.
 
 export const migrationData = {
   netMigration2024: 143641,

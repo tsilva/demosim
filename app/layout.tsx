@@ -148,7 +148,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Can Portugal Avoid Demographic Decline by 2100?',
-    description: 'Run Eurostat-based simulations for Portugal\'s population, aging, migration, and economic sustainability through 2100.',
+    description: 'Run Eurostat-based simulations for Portugal\'s population, aging, migration, and fiscal pressure through 2100.',
     images: [`${siteUrl}og-image.png`],
   },
 };

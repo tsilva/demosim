@@ -22,38 +22,35 @@ Runtime demographic data:
 | File | Description |
 |------|-------------|
 | `population2026.ts` | INE revised 31 December 2025 population by single age/sex (11,424,031 total); INE 85+ split using Eurostat 2025 proportions |
-| `lifeTables.ts` | 2024 mortality rates (qx), calibrated to Eurostat life expectancy 79.7 M / 85.2 F |
-| `fertilityRates.ts` | Eurostat 2024 age-specific fertility pattern, TFR 1.41, mean age 31.7 |
-| `projectionAssumptions.ts` | EUROPOP2025 fertility, mortality, and migration keyframes for presets |
+| `europop2025Exact.json` | Generated exact annual EUROPOP2025 preset inputs and reference stocks |
+| `projectionAssumptions.ts` | Typed accessors for the generated EUROPOP2025 snapshot |
+| `fertilityRates.ts` | 2024 age-specific pattern used only by custom scenarios |
 | `migrationProfile.ts` | Custom-scenario migration profile |
-| `economicParams.json` | SS rates, employment by age, Eurostat health accounts, GDP per worker |
+| `economicParams.json` | Official 2025 fiscal, employment, health, GDP, and EC long-term anchors |
 
 ### Simulation Engine (`utils/simulation.ts`)
 
 **Cohort-component method** (UN/Eurostat standard):
 
 1. Load the revised 1 January 2026 population pyramid
-2. Apply age/sex mortality using EUROPOP2025 preset paths or custom improvement rates
-3. Calculate births using annual TFR and mean-childbearing-age assumptions
-4. Distribute migration using evolving EUROPOP2025 age/sex profiles or the custom profile
-5. Track age 100+ internally through a 110+ open bucket (displayed as 100+)
+2. Apply age/sex survival using exact EUROPOP2025 preset transitions or custom improvement rates
+3. Calculate births using exact annual EUROPOP2025 age-specific rates or the custom TFR profile
+4. Add exact EUROPOP2025 target-age migration or a normalized custom profile
+5. Track age 100+ as the same open cohort published by Eurostat
 6. Validate population balance each year
 
 Key functions:
 - `generateInitialData()` - Returns the 2026 opening population
-- `calculateEconomicMetrics(...)` - SS balance, healthcare, sustainability
+- `calculateEconomicMetrics(...)` - SS balance, healthcare, and observable age-related spending ratios
 - `runSimulation(startYear, endYear, params)` - Main loop
 
 ### Economic Metrics (`calculateEconomicMetrics`)
 
-- **SS Contributions**: `workforce × salary × 34.75%`
-- **Pension Payments**: `actualPensioners × avgPension` (excludes working retirees)
-- **Healthcare**: Per-capita cost × age multipliers (0.6x youth → 6x elderly)
-- **Sustainability Index**: `100 × (1 - totalBurden / (GDP × 0.40))`, 0-100 scale
-  - `totalBurden = ssDeficit + healthcareCost` (includes healthcare, not just SS)
-  - `GDP = workforce × gdpPerWorker × growthFactor`, deflated to constant 2024 EUR
-  - Returned monetary outputs are inflation-adjusted 2024 EUR
-  - 40% of GDP threshold = system breaking point (0 sustainability)
+- **SS balance**: CFP effective revenue minus effective expenditure, calibrated to 2025 execution
+- **Public pensions**: Social Security + CGA, following EC reference spending shares with scenario demographic sensitivity
+- **Healthcare**: Eurostat SHA 2025 totals and EC Ageing Report age/sex exposure and reference path
+- **Fiscal pressure**: `(public pensions + public healthcare) / GDP`; no subjective breaking-point score
+- Returned monetary outputs are inflation-adjusted constant 2025 EUR
 
 ### Components
 
@@ -61,12 +58,12 @@ Key functions:
 |-----------|---------|
 | `PyramidChart.tsx` | Population pyramid (Recharts) |
 | `TrendChart.tsx` | Dependency ratio over time |
-| `EconomicMetrics.tsx` | SS balance, healthcare, sustainability display |
+| `EconomicMetrics.tsx` | SS balance, healthcare, and fiscal-pressure display |
 
 ### Types (`types.ts`)
 
 - `SimulationParams` - Retirement age, TFR, migration, mortality improvement, workforce shifts
-- `EconomicMetrics` - Workforce, SS balance, healthcare, sustainability index
+- `EconomicMetrics` - Workforce, SS balance, healthcare, and public spending ratios
 - `SCENARIO_PRESETS` - Low/Medium/High demographic scenarios
 
 ## Reference Values
@@ -75,15 +72,14 @@ Key functions:
 |--------|-------|
 | Population (1 Jan 2026) | 11,424,031 |
 | Median age (31 Dec 2025) | 45.8 |
-| 2024 life expectancy anchor | 82.5 (M: 79.7, F: 85.2) |
 | EUROPOP2025 baseline TFR (2026) | 1.46506 |
 | EUROPOP2025 baseline net migration (2026) | +132,517 |
 
 ## Important Implementation Notes
 
-1. **Preset assumptions**: EUROPOP2025 keyframes are interpolated by year (geometrically for mortality); fertility timing shifts with projected mean age at childbirth
-2. **Migration normalization**: Age/sex shares are normalized dynamically so annual allocated migration equals the projected total
-3. **Age 100+ handling**: Displayed as age 100+, internally split through a 110+ open bucket
-4. **Pension calculation**: Excludes working retirees (15% of 65-69, 4% of 70+)
-5. **Healthcare currency**: Eurostat health spending is stored directly in EUR per inhabitant
-6. **Population validation**: Console warning if balance error exceeds one person per year
+1. **Preset assumptions**: exact annual EUROPOP2025 ASFR, age/sex migration, and effective cohort-survival inputs are stored in `europop2025Exact.json`
+2. **Migration accounting**: Presets use published target-age amounts directly; custom age/sex shares are normalized so the allocated total matches the requested migration
+3. **Age 100+ handling**: Eurostat-compatible open cohort
+4. **Fiscal base**: Opening values use CFP 2025 execution and Eurostat 2025 provisional health/GDP aggregates
+5. **Post-2070 economics**: EC spending shares are held at their last published value, then adjusted for scenario exposure
+6. **Population validation**: Data generation requires zero official transition/birth reproduction error; runtime balance warns above one person

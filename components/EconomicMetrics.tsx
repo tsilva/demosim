@@ -17,22 +17,19 @@ const formatCurrency = (value: number): string => {
 };
 
 const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
-  const isCritical = metrics.sustainabilityIndex < 30;
-  const isWarning = metrics.sustainabilityIndex < 60;
-
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
       {/* Actual Workforce */}
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Actual Workforce
-          <InfoTooltip content="Employed workers contributing to social security, including employed people above retirement age." />
+          <InfoTooltip content="Modeled employed population aged 15+, calibrated to Eurostat's 2025 total. The percentage divides all workers, including older workers, by the population aged 15 to the selected retirement threshold, so it can exceed 100%." />
         </p>
         <p className="text-xl font-bold text-emerald-400">
           {(metrics.actualWorkforce / 1000000).toFixed(2)}M
         </p>
         <p className="text-[10px] text-slate-500">
-          {(metrics.laborUtilizationRate * 100).toFixed(1)}% labor utilization
+          {(metrics.laborUtilizationRate * 100).toFixed(1)}% vs 15-to-retirement population
         </p>
       </div>
 
@@ -40,13 +37,13 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           SS Balance
-          <InfoTooltip content="Inflation-adjusted 2024 EUR. Social Security revenue minus pension payments and calibrated non-pension expenditure. Negative values indicate a deficit that must be covered by other means." />
+          <InfoTooltip content="Constant 2025 EUR. The opening value exactly matches CFP's 2025 effective revenue minus expenditure, excluding ESF and FEAC. Later revenue follows workforce/GDP, while non-pension expenditure follows population and productivity; those later balances are model estimates." />
         </p>
         <p className={`text-xl font-bold ${metrics.ssBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {metrics.ssBalance >= 0 ? '+' : ''}{formatCurrency(metrics.ssBalance)}
         </p>
         <p className="text-[10px] text-slate-500">
-          {formatCurrency(metrics.ssBalancePerWorker)} 2024 EUR/worker
+          {formatCurrency(metrics.ssBalancePerWorker)} 2025 EUR/worker
         </p>
       </div>
 
@@ -54,82 +51,50 @@ const EconomicMetrics: React.FC<Props> = ({ metrics }) => {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
           Healthcare Cost
-          <InfoTooltip content="Inflation-adjusted 2024 EUR. Total healthcare spending based on population age structure. Public share (62%) counts toward fiscal burden. Elderly care costs 6x more than youth." />
+          <InfoTooltip content="Constant 2025 EUR. Opening totals match Eurostat SHA 2025 provisional data. Future public spending follows the EC Ageing Report baseline, adjusted for the scenario's age/sex structure." />
         </p>
         <p className="text-xl font-bold text-cyan-400">
           {formatCurrency(metrics.publicHealthcareCost)}
         </p>
         <p className="text-[10px] text-slate-500">
-          {formatCurrency(metrics.totalHealthcareCost)} total ({formatCurrency(metrics.healthcareCostPerWorker)} 2024 EUR/worker)
+          {formatCurrency(metrics.totalHealthcareCost)} total ({formatCurrency(metrics.healthcareCostPerWorker)} 2025 EUR/worker)
         </p>
       </div>
 
       {/* Total Burden per Worker */}
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <p className="text-[10px] text-slate-500 uppercase tracking-tight flex items-center">
-          Burden per Worker
-          <InfoTooltip content="Inflation-adjusted 2024 EUR. Annual cost each worker must cover for SS deficit and public healthcare (62% of total). Higher values reduce disposable income and competitiveness." />
+          Pensions + Health / Worker
+          <InfoTooltip content="Constant 2025 EUR. Total public pension spending (Social Security and CGA) plus public healthcare, divided by the modeled employed workforce." />
         </p>
-        <p className={`text-xl font-bold ${
-          metrics.totalBurdenPerWorker > 20000 ? 'text-rose-400' : 'text-amber-400'
-        }`}>
-          {formatCurrency(metrics.totalBurdenPerWorker)}
+        <p className="text-xl font-bold text-amber-400">
+          {formatCurrency(metrics.ageRelatedSpendingPerWorker)}
         </p>
         <p className="text-[10px] text-slate-500">
-          2024 EUR/year (SS deficit + healthcare)
+          2025 EUR/year
         </p>
       </div>
 
-      {/* Sustainability Index */}
-      <div className={`sm:col-span-2 lg:col-span-1 border rounded-xl p-3 shadow-md ${
-        isCritical
-          ? 'bg-rose-900/20 border-rose-800'
-          : isWarning
-            ? 'bg-amber-900/20 border-amber-800'
-            : 'bg-slate-900 border-slate-800'
-      }`}>
+      {/* Observable spending ratio */}
+      <div className="sm:col-span-2 lg:col-span-1 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md">
         <div className="flex items-center justify-between mb-1">
           <p className="text-[10px] text-slate-400 uppercase tracking-tight flex items-center">
-            Sustainability Index
-            <InfoTooltip content="Score from 0-100 measuring if total burden (SS deficit + healthcare) stays within 40% of GDP. Zero means system breaking point." />
+            Pensions + Health / GDP
+            <InfoTooltip content="Public pension expenditure plus public healthcare as a percentage of modeled GDP. This is an observable fiscal ratio, not a subjective sustainability score. Lower values require a smaller share of national output." />
           </p>
-          <span className={`text-lg font-bold ${
-            isCritical ? 'text-rose-400' : isWarning ? 'text-amber-400' : 'text-emerald-400'
-          }`}>
-            {metrics.sustainabilityIndex.toFixed(0)}
+          <span className="text-lg font-bold text-cyan-400">
+            {metrics.ageRelatedSpendingShareOfGdp.toFixed(1)}%
           </span>
         </div>
-        {/* Progress bar with threshold markers */}
-        <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div className="relative h-2 overflow-hidden rounded-full bg-slate-800">
           <div
-            className={`h-full transition-all duration-500 ${
-              isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
-            }`}
-            style={{ width: `${metrics.sustainabilityIndex}%` }}
+            className="h-full bg-cyan-500 transition-all duration-500"
+            style={{ width: `${Math.min(100, metrics.ageRelatedSpendingShareOfGdp * 4)}%` }}
           />
-          {/* Threshold markers */}
-          <div className="absolute top-0 left-[30%] w-px h-full bg-slate-600" />
-          <div className="absolute top-0 left-[60%] w-px h-full bg-slate-600" />
         </div>
-        {/* Enhanced status explanation */}
-        <div className="mt-2">
-          <p className={`text-[10px] font-medium ${
-            isCritical ? 'text-rose-400' : isWarning ? 'text-amber-400' : 'text-emerald-400'
-          }`}>
-            {isCritical
-              ? 'CRITICAL: Burden exceeds 40% of GDP'
-              : isWarning
-                ? 'WARNING: Reforms may be needed'
-                : 'System can sustain current burden'}
-          </p>
-          <p className="text-[10px] text-slate-600 mt-0.5">
-            {isCritical
-              ? 'Without intervention, the system cannot meet its obligations.'
-              : isWarning
-                ? 'Approaching limits. Consider retirement age or migration adjustments.'
-                : 'Fiscal capacity exists to cover social programs.'}
-          </p>
-        </div>
+        <p className="mt-2 text-[10px] text-slate-600">
+          Public pensions and healthcare only; long-term care and other age-related programmes are excluded.
+        </p>
       </div>
     </div>
   );

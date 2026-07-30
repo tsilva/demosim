@@ -1,106 +1,146 @@
 {
-  "source": "Compiled from Eurostat, PORDATA, Segurança Social, and official Portuguese sources",
+  "source": "Latest official Portugal and EU statistical releases available in July 2026",
   "reference": {
-    "socialSecurity": "PwC Tax Guide Portugal 2024",
-    "employment": "PORDATA - Taxa de Emprego",
-    "healthcare": "Eurostat SHA 2024",
-    "pensions": "Segurança Social - Estatísticas"
+    "socialSecurity": "Conselho das Finanças Públicas report 04/2026, 2025 budget execution",
+    "employment": "Eurostat EU-LFS datasets lfsa_ergan and lfsa_egan2, 2025",
+    "healthcare": "Eurostat SHA dataset hlth_sha11_hf, 2025 provisional",
+    "pensions": "Conselho das Finanças Públicas report 04/2026",
+    "gdp": "Eurostat dataset nama_10_gdp, 2025 provisional",
+    "longTermProjection": "European Commission 2024 Ageing Report and 2026 Portugal country report"
   },
   "socialSecurity": {
-    "contributionRates": {
-      "employee": 0.11,
-      "employer": 0.2375,
-      "total": 0.3475,
-      "selfEmployed": 0.214,
-      "description": "Percentage of gross salary contributed to Social Security"
-    },
-    "pensionCalculation": {
-      "accrualRateMin": 0.02,
-      "accrualRateMax": 0.023,
-      "maxContributionYears": 40,
-      "replacementRate": 0.69,
-      "description": "Pension accrues at 2-2.3% per year, capped at 40 years"
-    },
-    "retirementAge2024": {
-      "years": 66,
-      "months": 4,
-      "decimal": 66.33,
-      "note": "Increases based on life expectancy at age 65"
-    },
-    "retirementAge2025": {
-      "years": 66,
-      "months": 5,
-      "decimal": 66.42
-    },
     "retirementAge2026": {
       "years": 66,
       "months": 9,
       "decimal": 66.75,
       "source": "Segurança Social statutory normal retirement age for 2026"
     },
-    "socialSupportIndex2024": 509.26,
-    "minimumPension2024": 308.30,
-    "averagePension2024": 580.00,
-    "officialBudgetBalance2024": 5595000000,
-    "officialBudgetBalanceSource": "Conselho das Finanças Públicas report 03/2025: 2024 Social Security surplus excluding ESF/FEAD"
+    "retirementAge2027": {
+      "years": 66,
+      "months": 11,
+      "decimal": 66.91666666666667,
+      "source": "Portaria n.º 476/2025/1"
+    },
+    "officialExecution2025": {
+      "effectiveRevenue": 44810000000,
+      "contributions": 30152000000,
+      "effectiveExpenditure": 38153000000,
+      "pensionExpenditure": 24864000000,
+      "balance": 6657000000,
+      "source": "CFP report 04/2026, Table 1; excludes ESF and FEAC"
+    },
+    "totalPublicPensionExpenditure2025": 37589000000,
+    "totalPublicPensionSource": "CFP report 04/2026; Social Security and CGA combined"
   },
   "employment": {
-    "description": "Employment rates by age group (proportion of population employed)",
+    "description": "Eurostat 2025 employment rates by age, total sex and citizenship",
+    "officialEmployed15Plus2025": 5275300,
     "rates": [
-      {"ageGroup": "15-19", "rate": 0.08},
-      {"ageGroup": "20-24", "rate": 0.45},
-      {"ageGroup": "25-29", "rate": 0.78},
-      {"ageGroup": "30-34", "rate": 0.84},
-      {"ageGroup": "35-39", "rate": 0.86},
-      {"ageGroup": "40-44", "rate": 0.87},
-      {"ageGroup": "45-49", "rate": 0.86},
-      {"ageGroup": "50-54", "rate": 0.82},
-      {"ageGroup": "55-59", "rate": 0.72},
-      {"ageGroup": "60-64", "rate": 0.48},
-      {"ageGroup": "65-69", "rate": 0.15},
-      {"ageGroup": "70+", "rate": 0.04}
-    ],
-    "overall2064Rate": 0.837,
-    "youthUnemploymentRate": 0.20
-  },
-  "wages": {
-    "averageGrossSalary2024": 1505,
-    "medianGrossSalary2024": 1100,
-    "minimumWage2024": 820,
-    "minimumWage2025": 870,
-    "currency": "EUR",
-    "period": "monthly",
-    "annualMultiplier": 14,
-    "note": "Portugal pays 14 months (12 + holiday + Christmas subsidies)"
+      {"ageGroup": "15-19", "rate": 0.061},
+      {"ageGroup": "20-24", "rate": 0.481},
+      {"ageGroup": "25-29", "rate": 0.828},
+      {"ageGroup": "30-34", "rate": 0.884},
+      {"ageGroup": "35-39", "rate": 0.894},
+      {"ageGroup": "40-44", "rate": 0.896},
+      {"ageGroup": "45-49", "rate": 0.886},
+      {"ageGroup": "50-54", "rate": 0.860},
+      {"ageGroup": "55-59", "rate": 0.783},
+      {"ageGroup": "60-64", "rate": 0.607},
+      {"ageGroup": "65-69", "rate": 0.243},
+      {"ageGroup": "70-74", "rate": 0.069},
+      {"ageGroup": "75+", "rate": 0.023}
+    ]
   },
   "healthcare": {
-    "perCapitaSpending2024": 2730.81,
-    "currency": "EUR",
-    "usdToEur": 1,
-    "annualInflation": 0.02,
-    "gdpShare": 0.101,
-    "publicShare": 0.6220462061,
-    "privateShare": 0.3779537939,
-    "ageMultipliers": {
-      "description": "Healthcare cost multiplier relative to 20-64 baseline",
-      "0-19": 0.6,
-      "20-64": 1.0,
-      "65-74": 2.5,
-      "75-84": 4.0,
-      "85+": 6.0
+    "totalExpenditure2025": 31877680000,
+    "publicExpenditure2025": 19970700000,
+    "publicShare": 0.626479091326596,
+    "status": "Provisional",
+    "ageCostProfile": {
+      "description": "Relative age/sex curve digitized from the European Commission 2024 Ageing Report EU14 public healthcare profile; Portugal is an EU14 constituent",
+      "male": [
+        {"age": 0, "weight": 8.5},
+        {"age": 1, "weight": 4.0},
+        {"age": 5, "weight": 3.0},
+        {"age": 10, "weight": 2.3},
+        {"age": 15, "weight": 2.5},
+        {"age": 20, "weight": 2.0},
+        {"age": 30, "weight": 2.3},
+        {"age": 40, "weight": 3.2},
+        {"age": 45, "weight": 4.0},
+        {"age": 50, "weight": 5.0},
+        {"age": 55, "weight": 6.5},
+        {"age": 60, "weight": 8.0},
+        {"age": 65, "weight": 10.0},
+        {"age": 70, "weight": 12.5},
+        {"age": 75, "weight": 15.0},
+        {"age": 80, "weight": 17.0},
+        {"age": 85, "weight": 20.0},
+        {"age": 95, "weight": 20.0},
+        {"age": 100, "weight": 18.0}
+      ],
+      "female": [
+        {"age": 0, "weight": 8.0},
+        {"age": 1, "weight": 4.0},
+        {"age": 5, "weight": 3.0},
+        {"age": 10, "weight": 2.3},
+        {"age": 15, "weight": 2.5},
+        {"age": 20, "weight": 3.0},
+        {"age": 30, "weight": 4.2},
+        {"age": 35, "weight": 4.4},
+        {"age": 40, "weight": 4.0},
+        {"age": 45, "weight": 4.2},
+        {"age": 50, "weight": 5.0},
+        {"age": 55, "weight": 6.2},
+        {"age": 60, "weight": 7.5},
+        {"age": 65, "weight": 9.0},
+        {"age": 70, "weight": 10.5},
+        {"age": 75, "weight": 12.5},
+        {"age": 80, "weight": 14.0},
+        {"age": 85, "weight": 15.0},
+        {"age": 95, "weight": 15.5},
+        {"age": 100, "weight": 13.0}
+      ]
     },
-    "note": "Age 65+ spends approximately 4x more than working-age population"
+    "publicSpendingShareOfGdpKeyframes": [
+      {"year": 2025, "value": 6.510424137472388},
+      {"year": 2030, "value": 6.2},
+      {"year": 2040, "value": 6.7},
+      {"year": 2050, "value": 7.1},
+      {"year": 2060, "value": 7.3},
+      {"year": 2070, "value": 7.2}
+    ]
+  },
+  "publicPensions": {
+    "spendingShareOfGdpKeyframes": [
+      {"year": 2025, "value": 12.25396870933165},
+      {"year": 2030, "value": 13.5},
+      {"year": 2040, "value": 14.7},
+      {"year": 2045, "value": 15.1},
+      {"year": 2050, "value": 14.6},
+      {"year": 2060, "value": 11.8},
+      {"year": 2070, "value": 10.4}
+    ],
+    "note": "2025 is CFP execution; 2030-2070 are the EC Ageing Report baseline, with the updated 2045 peak from the 2026 Portugal country report"
   },
   "inflation": {
-    "baseYear": 2024,
+    "baseYear": 2025,
     "annualRate": 0.02,
     "currency": "EUR",
-    "description": "Consumer inflation used to convert projected nominal monetary flows into constant 2024 euros"
+    "description": "Displayed monetary values are constant 2025 euros"
   },
   "productivity": {
-    "gdpPerWorker2024": 54582.87,
-    "gdpPerCapita2024": 27200,
-    "currency": "EUR",
-    "annualGrowthRate": 0.015
+    "gdp2025": 306749600000,
+    "gdpStatus": "Provisional",
+    "annualRealGrowthRateKeyframes": [
+      {"year": 2026, "value": 0.015},
+      {"year": 2030, "value": 0.015},
+      {"year": 2040, "value": 0.020},
+      {"year": 2050, "value": 0.020},
+      {"year": 2060, "value": 0.016},
+      {"year": 2070, "value": 0.012},
+      {"year": 2100, "value": 0.012}
+    ],
+    "source": "Eurostat 2025 GDP anchor; European Commission 2024 Ageing Report long-run productivity assumptions"
   }
 }
