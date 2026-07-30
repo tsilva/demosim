@@ -1,5 +1,5 @@
 {
   "name": "Portugal 2100 Simulator",
-  "description": "Interactive Eurostat-based simulator for Portugal's population, aging, migration, and economic pressure from 2024 to 2100.",
+  "description": "Interactive INE- and Eurostat-based simulator for Portugal's population, aging, migration, and economic pressure from 2026 to 2100.",
   "requestFramePermissions": []
 }

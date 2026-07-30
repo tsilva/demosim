@@ -32,6 +32,12 @@
       "months": 5,
       "decimal": 66.42
     },
+    "retirementAge2026": {
+      "years": 66,
+      "months": 9,
+      "decimal": 66.75,
+      "source": "Segurança Social statutory normal retirement age for 2026"
+    },
     "socialSupportIndex2024": 509.26,
     "minimumPension2024": 308.30,
     "averagePension2024": 580.00,

@@ -13,36 +13,34 @@ npm run preview      # Preview build
 
 ## Architecture
 
-React 19 + TypeScript + Vite SPA simulating Portugal's demographic evolution 2024-2100.
+Next.js 16 App Router + React 19 + TypeScript simulator for Portugal's demographic evolution from 2026 to 2100.
 
 ### Data Layer (`data/`)
 
-Runtime 2024 baseline data:
+Runtime demographic data:
 
 | File | Description |
 |------|-------------|
-| `population2024.ts` | Eurostat 1 January 2024 population by single year of age/sex (10,639,726 total) |
+| `population2026.ts` | INE revised 31 December 2025 population by single age/sex (11,424,031 total); INE 85+ split using Eurostat 2025 proportions |
 | `lifeTables.ts` | 2024 mortality rates (qx), calibrated to Eurostat life expectancy 79.7 M / 85.2 F |
-| `fertilityRates.ts` | Eurostat 2024 ASFR calibrated to TFR 1.41, mean age 31.7 |
-| `migrationProfile.ts` | Net migration profile inferred from official 2024-2025 population change and calibrated to the model's first transition |
+| `fertilityRates.ts` | Eurostat 2024 age-specific fertility pattern, TFR 1.41, mean age 31.7 |
+| `projectionAssumptions.ts` | EUROPOP2025 fertility, mortality, and migration keyframes for presets |
+| `migrationProfile.ts` | Custom-scenario migration profile |
 | `economicParams.json` | SS rates, employment by age, Eurostat health accounts, GDP per worker |
 
 ### Simulation Engine (`utils/simulation.ts`)
 
 **Cohort-component method** (UN/Eurostat standard):
 
-1. Load 2024 population pyramid
-2. Apply mortality with configurable improvement rates
-3. Calculate births using scaled ASFR distribution
-4. Distribute migration with normalized weights + carry-over
+1. Load the revised 1 January 2026 population pyramid
+2. Apply age/sex mortality using EUROPOP2025 preset paths or custom improvement rates
+3. Calculate births using annual TFR and mean-childbearing-age assumptions
+4. Distribute migration using evolving EUROPOP2025 age/sex profiles or the custom profile
 5. Track age 100+ internally through a 110+ open bucket (displayed as 100+)
 6. Validate population balance each year
 
 Key functions:
-- `generateInitialData()` - Returns 2024 population
-- `getMortalityRate(age, sex, yearsFromBase, improvement)` - qx with improvement
-- `getFertilityRate(age)` - ASFR for age (divide by 1000)
-- `getMigrationWeight(age, sex)` - Normalized weight per age
+- `generateInitialData()` - Returns the 2026 opening population
 - `calculateEconomicMetrics(...)` - SS balance, healthcare, sustainability
 - `runSimulation(startYear, endYear, params)` - Main loop
 
@@ -71,21 +69,21 @@ Key functions:
 - `EconomicMetrics` - Workforce, SS balance, healthcare, sustainability index
 - `SCENARIO_PRESETS` - Low/Medium/High demographic scenarios
 
-## Reference Values (Eurostat 2024 baseline)
+## Reference Values
 
 | Metric | Value |
 |--------|-------|
-| Population | 10,639,726 |
-| Median age | 47.1 |
-| Life expectancy | 82.5 (M: 79.7, F: 85.2) |
-| TFR | 1.41 |
-| Calibrated net migration | +137,718 |
+| Population (1 Jan 2026) | 11,424,031 |
+| Median age (31 Dec 2025) | 45.8 |
+| 2024 life expectancy anchor | 82.5 (M: 79.7, F: 85.2) |
+| EUROPOP2025 baseline TFR (2026) | 1.46506 |
+| EUROPOP2025 baseline net migration (2026) | +132,517 |
 
 ## Important Implementation Notes
 
-1. **ASFR scaling**: User TFR is applied as ratio to the 2024 base 1.41 (`scaledASFR = baseASFR × (userTFR / 1.41)`)
-2. **Migration normalization**: Weights don't sum to 1.0 in JSON; normalized dynamically in code
+1. **Preset assumptions**: EUROPOP2025 keyframes are interpolated by year (geometrically for mortality); fertility timing shifts with projected mean age at childbirth
+2. **Migration normalization**: Age/sex shares are normalized dynamically so annual allocated migration equals the projected total
 3. **Age 100+ handling**: Displayed as age 100+, internally split through a 110+ open bucket
 4. **Pension calculation**: Excludes working retirees (15% of 65-69, 4% of 70+)
 5. **Healthcare currency**: Eurostat health spending is stored directly in EUR per inhabitant
-6. **Population validation**: Console warning if balance error >500 per year
+6. **Population validation**: Console warning if balance error exceeds one person per year

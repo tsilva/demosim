@@ -163,7 +163,7 @@ This document outlines the comprehensive plan to fix all identified simulation i
 ## Testing Strategy
 
 After each phase:
-1. Run simulation with default parameters (2024-2100)
+1. Run simulation with default parameters (2026-2100)
 2. Verify total population trend is reasonable
 3. Check age 100+ population doesn't explode
 4. Validate economic metrics are within expected ranges

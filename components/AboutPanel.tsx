@@ -26,19 +26,22 @@ const AboutPanel: React.FC = () => {
               </div>
               <ul className="space-y-2 text-slate-400 text-xs">
                 <li>
-                  <span className="text-slate-300">Population:</span> Eurostat 1 January 2024 population (10.64M)
+                  <span className="text-slate-300">Population:</span> INE revised 31 December 2025 stock (11,424,031)
                 </li>
                 <li>
-                  <span className="text-slate-300">Mortality:</span> Eurostat 2024 mortality (M: 79.7y, F: 85.2y)
+                  <span className="text-slate-300">Mortality:</span> Eurostat 2024 age/sex rates + EUROPOP2025 improvement paths
                 </li>
                 <li>
-                  <span className="text-slate-300">Fertility:</span> Eurostat 2024 age-specific rates (TFR 1.41)
+                  <span className="text-slate-300">Fertility:</span> Eurostat 2024 age pattern + EUROPOP2025 TFR and timing paths
                 </li>
                 <li>
-                  <span className="text-slate-300">Migration:</span> 2024 profile with scenario-specific convergence paths
+                  <span className="text-slate-300">Migration:</span> EUROPOP2025 annual totals and evolving age/sex profiles
                 </li>
                 <li>
-                  <span className="text-slate-300">Healthcare:</span> Eurostat SHA 2024 + age-cost multipliers
+                  <span className="text-slate-300">Retirement:</span> Official 2026 normal pension age (66y 9m)
+                </li>
+                <li>
+                  <span className="text-slate-300">Healthcare:</span> Eurostat SHA aggregate spending; model age-cost weights
                 </li>
               </ul>
             </div>
@@ -52,6 +55,9 @@ const AboutPanel: React.FC = () => {
               <ul className="space-y-2 text-slate-400 text-xs">
                 <li>
                   <span className="text-slate-300">Model:</span> Cohort-component projection (UN/Eurostat standard)
+                </li>
+                <li>
+                  <span className="text-slate-300">Presets:</span> EUROPOP2025 baseline and sensitivity assumptions
                 </li>
                 <li>
                   <span className="text-slate-300">SS Contributions:</span> Workforce × salary × 34.75%
@@ -78,11 +84,12 @@ const AboutPanel: React.FC = () => {
                 Limitations
               </div>
               <ul className="space-y-2 text-slate-400 text-xs">
-                <li>Educational tool, not a forecast</li>
+                <li>Scenario projection, not a prediction or official forecast</li>
                 <li>No modeling of policy changes, economic shocks, or pandemics</li>
-                <li>Real wage growth follows the productivity assumption; pension rules remain constant</li>
-                <li>Migration age profile fixed over time; annual totals follow scenario paths</li>
-                <li>Healthcare costs simplified to age multipliers and real cost growth</li>
+                <li>INE publishes ages 85+ together; the simulator splits them using the Eurostat 2025 age/sex pattern</li>
+                <li>EUROPOP2025 keyframes are interpolated between official years (geometrically for mortality)</li>
+                <li>Economic inputs remain illustrative 2024 constant-EUR assumptions and are less certain than the population mechanics</li>
+                <li>Healthcare age costs use simplified model weights and real cost growth</li>
               </ul>
             </div>
           </div>

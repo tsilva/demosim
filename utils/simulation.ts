@@ -1,20 +1,28 @@
-import { AgeGroup, YearData, SimulationParams, MortalityImprovementRate, EconomicMetrics } from '../types';
+import { AgeGroup, YearData, SimulationParams, EconomicMetrics } from '../types';
 
 // Import real demographic data
-import { populationData } from '../data/population2024';
+import { populationData } from '../data/population2026';
 import { lifeTables } from '../data/lifeTables';
 import { fertilityData } from '../data/fertilityRates';
 import { migrationData } from '../data/migrationProfile';
+import {
+  FERTILITY_PATHS,
+  MIGRATION_SHARE_KEYFRAMES,
+  MIGRATION_TOTAL_PATHS,
+  MORTALITY_FACTOR_KEYFRAMES,
+  PROJECTION_AGE_BINS,
+  type MigrationProjection,
+} from '../data/projectionAssumptions';
 import economicParams from '../data/economicParams.json';
 
 const MAX_AGE = 100;
 const OPEN_AGE_MAX = 110;
 const OPEN_AGE_MORTALITY_GROWTH = 1.10;
-const BASE_YEAR = 2024;
+const BASE_YEAR = 2026;
 const ENTRY_SHIFT_MAX_AGE = 29;
 const MIGRATION_ROUNDING_SOURCE_AGE = 29;
-const BASE_RETIREMENT_AGE = economicParams.socialSecurity.retirementAge2024.years +
-                            economicParams.socialSecurity.retirementAge2024.months / 12;
+const BASE_RETIREMENT_AGE = economicParams.socialSecurity.retirementAge2026.years +
+                            economicParams.socialSecurity.retirementAge2026.months / 12;
 type Sex = 'male' | 'female';
 
 const INITIAL_POPULATION: AgeGroup[] = populationData.data.map(row => ({
@@ -33,8 +41,8 @@ const FERTILITY_BY_AGE = (() => {
 })();
 
 /**
- * Generates initial population data for Portugal (2024)
- * Uses the repository's calibrated 2024 age/sex population distribution
+ * Generates initial population data for Portugal on 1 January 2026.
+ * Uses INE's revised 31 December 2025 resident population by age and sex.
  */
 export const generateInitialData = (): AgeGroup[] => {
   return INITIAL_POPULATION.map(group => ({ ...group }));
@@ -68,27 +76,6 @@ const getScaledOpenAgeBaseQx = (age: number, sex: Sex, scale: number): number =>
 
 const getOpenAgeBaseQx = (age: number, sex: Sex): number => {
   return getScaledOpenAgeBaseQx(age, sex, 1);
-};
-
-const getMortalityRate = (
-  age: number,
-  sex: Sex,
-  yearsFromBase: number,
-  mortalityImprovement: MortalityImprovementRate
-): number => {
-  const baseImprovementRate = sex === 'male'
-    ? mortalityImprovement.male
-    : mortalityImprovement.female;
-  const improvementRate = getAgeAdjustedMortalityImprovement(age, baseImprovementRate);
-
-  const baseQx = getOpenAgeBaseQx(age, sex);
-
-  // Apply mortality improvement over time (mortality decreases as medicine improves)
-  // This models increasing life expectancy over the projection period.
-  // Keep qx below 1.0 so open-ended age groups can persist realistically.
-  const improvedQx = baseQx * Math.pow(1 - improvementRate, yearsFromBase);
-
-  return clampMortalityRate(improvedQx);
 };
 
 const getMortalityImprovementAgeFactor = (age: number): number => {
@@ -201,24 +188,6 @@ const getHalfYearMortalityRate = (annualQx: number): number => {
 };
 
 /**
- * Get age-specific fertility rate (ASFR)
- * Returns births per woman per year for a given age
- * Based on Eurostat 2024 data, calibrated to TFR 1.41 and mean age 31.7
- */
-const getFertilityRate = (age: number): number => {
-  return FERTILITY_BY_AGE[age] || 0;
-};
-
-/**
- * Get migration weight for a given age group
- * Returns the proportion of total migration allocated to this age
- * Weights are normalized to sum to 1.0 to ensure all migration is distributed
- */
-const getMigrationWeight = (age: number, sex: 'male' | 'female'): number => {
-  return MIGRATION_WEIGHTS[sex][age] || 0;
-};
-
-/**
  * Parse age group string like "20-24" or "80+" into [min, max]
  */
 const parseAgeGroup = (ageGroup: string): [number, number] => {
@@ -314,86 +283,180 @@ const buildTransitionMigrationAmounts = (
   };
 };
 
-const estimateBaseYearDeathsWithMigration = (): number => {
-  const migrationAmounts = buildTransitionMigrationAmounts(migrationData.netMigration2024);
-  const population = expandInitialPopulation();
-
-  let totalDeaths = 0;
-  for (const group of population) {
-    const migrationMale = group.age < MAX_AGE
-      ? migrationAmounts.maleBySourceAge[group.age] || 0
-      : 0;
-    const migrationFemale = group.age < MAX_AGE
-      ? migrationAmounts.femaleBySourceAge[group.age] || 0
-      : 0;
-    const maleQx = getOpenAgeBaseQx(group.age, 'male');
-    const femaleQx = getOpenAgeBaseQx(group.age, 'female');
-    const residentMaleExposure = Math.max(0, group.male + Math.min(0, migrationMale) / 2);
-    const residentFemaleExposure = Math.max(0, group.female + Math.min(0, migrationFemale) / 2);
-    const migrantDeathsMale = migrationMale > 0
-      ? Math.round(migrationMale * getHalfYearMortalityRate(maleQx))
-      : 0;
-    const migrantDeathsFemale = migrationFemale > 0
-      ? Math.round(migrationFemale * getHalfYearMortalityRate(femaleQx))
-      : 0;
-
-    totalDeaths += Math.round(residentMaleExposure * maleQx) +
-                   Math.round(residentFemaleExposure * femaleQx) +
-                   migrantDeathsMale +
-                   migrantDeathsFemale;
+const interpolateKeyframeValues = (
+  keyframes: readonly (readonly number[])[],
+  year: number,
+  mode: 'linear' | 'geometric' = 'linear'
+): number[] => {
+  if (keyframes.length === 0) {
+    return [];
   }
 
-  const sexRatio = fertilityData.sexRatioAtBirth.ratio;
-  const maleBirths = Math.floor(
-    fertilityData.liveBirths2024 * (sexRatio / (1 + sexRatio))
-  );
-  const femaleBirths = fertilityData.liveBirths2024 - maleBirths;
-  totalDeaths += Math.round(
-    maleBirths * getHalfYearMortalityRate(getOpenAgeBaseQx(0, 'male'))
-  );
-  totalDeaths += Math.round(
-    femaleBirths * getHalfYearMortalityRate(getOpenAgeBaseQx(0, 'female'))
-  );
-  if (migrationAmounts.maleAgeZero > 0) {
-    totalDeaths += Math.round(
-      migrationAmounts.maleAgeZero * getHalfYearMortalityRate(getOpenAgeBaseQx(0, 'male'))
-    );
-  }
-  if (migrationAmounts.femaleAgeZero > 0) {
-    totalDeaths += Math.round(
-      migrationAmounts.femaleAgeZero * getHalfYearMortalityRate(getOpenAgeBaseQx(0, 'female'))
-    );
+  if (year <= keyframes[0][0]) {
+    return keyframes[0].slice(1);
   }
 
-  return totalDeaths;
-};
+  const last = keyframes[keyframes.length - 1];
+  if (year >= last[0]) {
+    return last.slice(1);
+  }
 
-const BASE_YEAR_DEATH_RECONCILIATION = Math.max(
-  0,
-  lifeTables.deaths2024 - estimateBaseYearDeathsWithMigration()
-);
-const BASE_YEAR_TARGET_POPULATION_AFTER_TRANSITION =
-  populationData.totalPopulation +
-  fertilityData.liveBirths2024 -
-  lifeTables.deaths2024 +
-  migrationData.netMigration2024;
-
-const estimateBaseYearBirthsWithMigration = (): number => {
-  const migrationAmounts = buildTransitionMigrationAmounts(migrationData.netMigration2024);
-
-  return INITIAL_POPULATION.reduce((births, group) => {
-    if (group.age < 15 || group.age > 49) {
-      return births;
+  for (let i = 1; i < keyframes.length; i++) {
+    const upper = keyframes[i];
+    if (year <= upper[0]) {
+      const lower = keyframes[i - 1];
+      const progress = (year - lower[0]) / (upper[0] - lower[0]);
+      return lower.slice(1).map((value, index) => {
+        const upperValue = upper[index + 1] ?? value;
+        if (mode === 'geometric' && value > 0 && upperValue > 0) {
+          return Math.exp(
+            Math.log(value) + (Math.log(upperValue) - Math.log(value)) * progress
+          );
+        }
+        return value + (upperValue - value) * progress;
+      });
     }
+  }
 
-    const migrationFemale = migrationAmounts.femaleBySourceAge[group.age] || 0;
-    const femaleExposure = Math.max(0, group.female + migrationFemale / 2);
-    return births + femaleExposure * (FERTILITY_BY_AGE[group.age] || 0);
-  }, 0);
+  return last.slice(1);
 };
 
-const BASE_FERTILITY_EXPOSURE_CALIBRATION =
-  fertilityData.liveBirths2024 / estimateBaseYearBirthsWithMigration();
+const getProjectionAgeBinIndex = (age: number): number => {
+  const cappedAge = Math.min(age, MAX_AGE);
+  const index = PROJECTION_AGE_BINS.findIndex(
+    ([minimumAge, maximumAge]) => cappedAge >= minimumAge && cappedAge <= maximumAge
+  );
+  return index >= 0 ? index : PROJECTION_AGE_BINS.length - 1;
+};
+
+const getAnnualFertilityAssumption = (
+  year: number,
+  params: SimulationParams
+): { totalFertilityRate: number; meanAgeAtChildbirth: number } => {
+  if (!params.projectionProfile) {
+    return {
+      totalFertilityRate: params.fertilityRate,
+      meanAgeAtChildbirth: fertilityData.meanAgeAtChildbirth,
+    };
+  }
+
+  const [totalFertilityRate, meanAgeAtChildbirth] = interpolateKeyframeValues(
+    FERTILITY_PATHS[params.projectionProfile.fertility],
+    year
+  );
+  return { totalFertilityRate, meanAgeAtChildbirth };
+};
+
+const interpolateAgeSpecificFertilityRate = (age: number): number => {
+  if (age < 15 || age > 49) {
+    return 0;
+  }
+
+  const lowerAge = Math.floor(age);
+  const upperAge = Math.ceil(age);
+  const lowerRate = FERTILITY_BY_AGE[lowerAge] || 0;
+  if (lowerAge === upperAge) {
+    return lowerRate;
+  }
+
+  const upperRate = FERTILITY_BY_AGE[upperAge] || 0;
+  return lowerRate + (upperRate - lowerRate) * (age - lowerAge);
+};
+
+const buildAnnualFertilityRates = (
+  totalFertilityRate: number,
+  meanAgeAtChildbirth: number
+): number[] => {
+  const rates = Array(MAX_AGE + 1).fill(0);
+  const ageShift = meanAgeAtChildbirth - fertilityData.meanAgeAtChildbirth;
+
+  for (let age = 15; age <= 49; age++) {
+    rates[age] = interpolateAgeSpecificFertilityRate(age - ageShift);
+  }
+
+  const unscaledTotal = rates.reduce((sum, rate) => sum + rate, 0);
+  if (unscaledTotal > 0) {
+    const scale = totalFertilityRate / unscaledTotal;
+    for (let age = 15; age <= 49; age++) {
+      rates[age] *= scale;
+    }
+  }
+
+  return rates;
+};
+
+const getProjectionMortalityFactor = (
+  year: number,
+  age: number,
+  sex: Sex,
+  params: SimulationParams
+): number | null => {
+  if (!params.projectionProfile) {
+    return null;
+  }
+
+  const factors = interpolateKeyframeValues(
+    MORTALITY_FACTOR_KEYFRAMES[params.projectionProfile.mortality][sex],
+    year,
+    'geometric'
+  );
+  return factors[getProjectionAgeBinIndex(age)] ?? 1;
+};
+
+const buildProjectedTransitionMigrationAmounts = (
+  annualNetMigration: number,
+  year: number,
+  projection: MigrationProjection
+) => {
+  const maleBinShares = interpolateKeyframeValues(
+    MIGRATION_SHARE_KEYFRAMES[projection].male,
+    year
+  );
+  const femaleBinShares = interpolateKeyframeValues(
+    MIGRATION_SHARE_KEYFRAMES[projection].female,
+    year
+  );
+  const totalShare = [...maleBinShares, ...femaleBinShares]
+    .reduce((sum, share) => sum + share, 0);
+  const normalization = totalShare === 0 ? 0 : 1 / totalShare;
+  const maleByProfileAge = Array(MAX_AGE + 1).fill(0);
+  const femaleByProfileAge = Array(MAX_AGE + 1).fill(0);
+
+  PROJECTION_AGE_BINS.forEach(([minimumAge, maximumAge], binIndex) => {
+    const ageCount = maximumAge - minimumAge + 1;
+    const malePerAge = annualNetMigration * (maleBinShares[binIndex] || 0) *
+                       normalization / ageCount;
+    const femalePerAge = annualNetMigration * (femaleBinShares[binIndex] || 0) *
+                         normalization / ageCount;
+
+    for (let age = minimumAge; age <= maximumAge; age++) {
+      maleByProfileAge[age] = Math.round(malePerAge);
+      femaleByProfileAge[age] = Math.round(femalePerAge);
+    }
+  });
+
+  const maleBySourceAge = Array(MAX_AGE).fill(0);
+  const femaleBySourceAge = Array(MAX_AGE).fill(0);
+  for (let sourceAge = 0; sourceAge < MAX_AGE; sourceAge++) {
+    maleBySourceAge[sourceAge] = maleByProfileAge[sourceAge + 1] || 0;
+    femaleBySourceAge[sourceAge] = femaleByProfileAge[sourceAge + 1] || 0;
+  }
+
+  const maleAgeZero = maleByProfileAge[0];
+  const femaleAgeZero = femaleByProfileAge[0];
+  const allocatedMigration = maleAgeZero + femaleAgeZero +
+    maleBySourceAge.reduce((sum, migration) => sum + migration, 0) +
+    femaleBySourceAge.reduce((sum, migration) => sum + migration, 0);
+  femaleBySourceAge[MIGRATION_ROUNDING_SOURCE_AGE] +=
+    Math.round(annualNetMigration) - allocatedMigration;
+
+  return {
+    maleBySourceAge,
+    femaleBySourceAge,
+    maleAgeZero,
+    femaleAgeZero,
+  };
+};
 
 const EMPLOYMENT_BASE_RATE_BY_AGE = (() => {
   const rates = Array(MAX_AGE + 1).fill(0);
@@ -522,6 +585,13 @@ const getAnnualNetMigration = (
   startYear: number,
   params: SimulationParams
 ): number => {
+  if (params.projectionProfile) {
+    return interpolateKeyframeValues(
+      MIGRATION_TOTAL_PATHS[params.projectionProfile.migration],
+      year
+    )[0];
+  }
+
   const initialNetMigration = params.initialNetMigration ?? params.netMigration;
   const convergenceYear = params.migrationConvergenceYear ?? startYear;
 
@@ -559,41 +629,6 @@ const capNegativeMigrationToAvailablePopulation = (
   }
 
   return -low;
-};
-
-const applyBaseYearDeathReconciliation = (
-  population: AgeGroup[],
-  deathsToAllocate: number
-): number => {
-  let remainingDeaths = Math.round(deathsToAllocate);
-  let appliedDeaths = 0;
-
-  if (remainingDeaths <= 0) {
-    return appliedDeaths;
-  }
-
-  for (let i = population.length - 1; i >= 0 && remainingDeaths > 0; i--) {
-    const group = population[i];
-    const available = Math.floor(group.total);
-    if (available <= 0) {
-      continue;
-    }
-
-    const deaths = Math.min(remainingDeaths, available);
-    const maleDeaths = Math.min(
-      group.male,
-      Math.round(deaths * (group.total > 0 ? group.male / group.total : 0))
-    );
-    const femaleDeaths = deaths - maleDeaths;
-
-    group.male -= maleDeaths;
-    group.female -= femaleDeaths;
-    group.total = group.male + group.female;
-    remainingDeaths -= deaths;
-    appliedDeaths += deaths;
-  }
-
-  return appliedDeaths;
 };
 
 const BASE_OFFICIAL_SS_BALANCE = economicParams.socialSecurity.officialBudgetBalance2024;
@@ -668,7 +703,8 @@ const getEmploymentRate = (
 /**
  * Get healthcare cost multiplier for a given age
  * Returns multiplier relative to 20-64 baseline (1.0)
- * Source: Eurostat health accounts 2024
+ * Aggregate spending is from Eurostat health accounts 2024; the age curve is
+ * an explicit model assumption in economicParams.json.
  */
 const getHealthcareMultiplier = (age: number): number => {
   return HEALTHCARE_MULTIPLIER_BY_AGE[Math.min(age, MAX_AGE)];
@@ -701,7 +737,7 @@ const getHealthcareMultiplier = (age: number): number => {
  *   Sum over all ages: population[age] * normalizedBaseCost * ageMultiplier[age] * healthcareCostGrowthFactor
  *   Where:
  *   - official per-capita cost = 2,730.81 EUR/year
- *   - normalizedBaseCost = official per-capita cost / 2024 population-weighted age multiplier
+ *   - normalizedBaseCost = official per-capita cost / opening-population-weighted age multiplier
  *   - ageMultiplier: 0.6 (0-19), 1.0 (20-64), 2.5 (65-74), 4.0 (75-84), 6.0 (85+)
  *
  * SUSTAINABILITY INDEX:
@@ -892,8 +928,6 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
   let currentPop = expandInitialPopulation();
   const results: YearData[] = [];
   const baseYear = BASE_YEAR;
-  const fertilityScale = (params.fertilityRate / fertilityData.totalFertilityRate) *
-                         BASE_FERTILITY_EXPOSURE_CALIBRATION;
   const employmentRates = buildEmploymentRates(
     params.workforceEntryAgeShift,
     params.unemploymentAdjustment,
@@ -902,19 +936,32 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
 
   for (let year = startYear; year <= endYear; year++) {
     const yearsFromBase = year - baseYear;
+    const fertilityAssumption = getAnnualFertilityAssumption(year, params);
+    const annualFertilityRates = buildAnnualFertilityRates(
+      fertilityAssumption.totalFertilityRate,
+      fertilityAssumption.meanAgeAtChildbirth
+    );
     const annualNetMigration = Math.round(getAnnualNetMigration(year, startYear, params));
-    const migrationAmounts = buildTransitionMigrationAmounts(annualNetMigration);
+    const migrationAmounts = params.projectionProfile
+      ? buildProjectedTransitionMigrationAmounts(
+          annualNetMigration,
+          year,
+          params.projectionProfile.migration
+        )
+      : buildTransitionMigrationAmounts(annualNetMigration);
     const maleQxByAge = Array(OPEN_AGE_MAX + 1);
     const femaleQxByAge = Array(OPEN_AGE_MAX + 1);
     const maleHalfYearQxByAge = Array(OPEN_AGE_MAX + 1);
     const femaleHalfYearQxByAge = Array(OPEN_AGE_MAX + 1);
 
     for (let age = 0; age <= OPEN_AGE_MAX; age++) {
-      const maleMortalityFactor = Math.pow(
+      const projectedMaleFactor = getProjectionMortalityFactor(year, age, 'male', params);
+      const projectedFemaleFactor = getProjectionMortalityFactor(year, age, 'female', params);
+      const maleMortalityFactor = projectedMaleFactor ?? Math.pow(
         1 - getAgeAdjustedMortalityImprovement(age, params.mortalityImprovement.male),
         yearsFromBase
       );
-      const femaleMortalityFactor = Math.pow(
+      const femaleMortalityFactor = projectedFemaleFactor ?? Math.pow(
         1 - getAgeAdjustedMortalityImprovement(age, params.mortalityImprovement.female),
         yearsFromBase
       );
@@ -987,6 +1034,10 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       childPop,
       oldAgeDependencyRatio: standardWorkingAgePop > 0 ? (standardOlderAgePop / standardWorkingAgePop) * 100 : 0,
       medianAge,
+      assumptions: {
+        fertilityRate: fertilityAssumption.totalFertilityRate,
+        netMigration: annualNetMigration,
+      },
       economic
     });
 
@@ -1024,13 +1075,9 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
     let totalBirths = 0;
     for (const group of currentPop) {
       if (group.age >= 15 && group.age <= 49) {
-        // Get ASFR for this age, adjusted by user's TFR parameter
-        const baseASFR = FERTILITY_BY_AGE[group.age];
-        // Scale ASFR proportionally to the official 2024 base TFR
-        const scaledASFR = baseASFR * fertilityScale;
         const migrationFemale = femaleMigrationByAge[group.age] || 0;
         const femaleExposure = Math.max(0, group.female + migrationFemale / 2);
-        totalBirths += femaleExposure * scaledASFR;
+        totalBirths += femaleExposure * annualFertilityRates[group.age];
       }
     }
 
@@ -1150,34 +1197,12 @@ export const runSimulation = (startYear: number, endYear: number, params: Simula
       });
     }
 
-    if (year === BASE_YEAR) {
-      totalDeaths += applyBaseYearDeathReconciliation(
-        nextPop,
-        BASE_YEAR_DEATH_RECONCILIATION
-      );
-
-      const isOfficialBaseTransition =
-        annualNetMigration === migrationData.netMigration2024 &&
-        Math.abs(params.fertilityRate - fertilityData.totalFertilityRate) < 0.000001;
-      if (isOfficialBaseTransition) {
-        const stockReconciliationDeaths =
-          nextPop.reduce((sum, group) => sum + group.total, 0) -
-          BASE_YEAR_TARGET_POPULATION_AFTER_TRANSITION;
-        if (stockReconciliationDeaths > 0) {
-          totalDeaths += applyBaseYearDeathReconciliation(
-            nextPop,
-            stockReconciliationDeaths
-          );
-        }
-      }
-    }
-
-    // Population balance validation (development check)
-    // Threshold of 500 accounts for cumulative rounding across internal age groups
+    // Population balance validation (development check). All cohort-level
+    // rounding is tracked explicitly, so only a one-person tolerance is needed.
     const nextPopTotal = nextPop.reduce((sum, g) => sum + g.total, 0);
     const expectedNextPop = totalPop + births - totalDeaths + totalMigrationDistributed;
     const balanceError = Math.abs(nextPopTotal - expectedNextPop);
-    if (process.env.NODE_ENV !== 'production' && balanceError > 500) {
+    if (process.env.NODE_ENV !== 'production' && balanceError > 1) {
       console.warn(
         `Population balance warning (year ${year}): ` +
         `expected ${expectedNextPop.toLocaleString()}, got ${nextPopTotal.toLocaleString()} ` +

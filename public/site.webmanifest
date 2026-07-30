@@ -1,7 +1,7 @@
 {
   "name": "Portugal 2100 Simulator",
   "short_name": "Portugal 2100",
-  "description": "Eurostat-based population and economic simulator for Portugal from 2024 to 2100.",
+  "description": "INE- and Eurostat-based population and economic simulator for Portugal from 2026 to 2100.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",

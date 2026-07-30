@@ -35,6 +35,10 @@ export interface YearData {
   childPop: number;
   oldAgeDependencyRatio: number; // Standard definition: age 65+ / age 15-64 * 100
   medianAge: number;
+  assumptions: {
+    fertilityRate: number;
+    netMigration: number;
+  };
   economic: EconomicMetrics;
 }
 
@@ -57,6 +61,9 @@ export interface SimulationParams {
   // Economic parameters
   workforceEntryAgeShift: number; // Years to shift workforce entry (0=current, +2=2 years later due to more education)
   unemploymentAdjustment: number; // Adjustment factor (0=baseline, +0.05=5% higher unemployment, -0.03=3% lower)
+  // Presets follow annual EUROPOP2025 assumptions. Manual edits remove this
+  // profile and use the constant/custom controls above.
+  projectionProfile?: import('./data/projectionAssumptions').ProjectionProfile;
 }
 
 // Scenario definition for presets
@@ -66,48 +73,64 @@ export interface ScenarioDefinition {
   params: SimulationParams;
 }
 
-const PORTUGAL_RETIREMENT_AGE_2024 = 66 + 4 / 12;
+const PORTUGAL_RETIREMENT_AGE_2026 = 66 + 9 / 12;
 
-// Scenario presets based on Eurostat EUROPOP2023, UN WPP 2024, and INE Portugal methodologies
+// Demographic paths use the official EUROPOP2025 baseline and sensitivity
+// assumptions. Economic controls remain transparent model assumptions.
 export const SCENARIO_PRESETS: Record<Exclude<ScenarioType, 'custom'>, ScenarioDefinition> = {
   low: {
     name: 'Low',
-    description: 'Economic stagnation: TFR 1.20, migration trends toward 20K/year, +3% unemployment',
+    description: 'EUROPOP2025 lower fertility and migration paths; baseline mortality; +3% unemployment',
     params: {
-      retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
-      fertilityRate: 1.20,
-      initialNetMigration: 50000,
-      netMigration: 20000,
-      migrationConvergenceYear: 2050,
+      retirementAge: PORTUGAL_RETIREMENT_AGE_2026,
+      fertilityRate: 1.46506,
+      initialNetMigration: 87506,
+      netMigration: 22305,
+      migrationConvergenceYear: 2100,
       mortalityImprovement: { male: 0.005, female: 0.004 },
+      projectionProfile: {
+        fertility: 'lower',
+        mortality: 'baseline',
+        migration: 'lower',
+      },
       workforceEntryAgeShift: 1,    // People enter workforce 1 year later (more education/fewer jobs)
       unemploymentAdjustment: 0.03  // 3% higher unemployment (economic stagnation)
     }
   },
   medium: {
     name: 'Medium',
-    description: 'Current trends normalize: TFR 1.41, migration trends from 144K to 50K/year',
+    description: 'EUROPOP2025 baseline fertility, mortality, and migration paths',
     params: {
-      retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
-      fertilityRate: 1.41,
-      initialNetMigration: 143641,
-      netMigration: 50000,
-      migrationConvergenceYear: 2050,
+      retirementAge: PORTUGAL_RETIREMENT_AGE_2026,
+      fertilityRate: 1.46506,
+      initialNetMigration: 132517,
+      netMigration: 35716,
+      migrationConvergenceYear: 2100,
       mortalityImprovement: { male: 0.010, female: 0.008 },
+      projectionProfile: {
+        fertility: 'baseline',
+        mortality: 'baseline',
+        migration: 'baseline',
+      },
       workforceEntryAgeShift: 0,    // Current workforce entry patterns
       unemploymentAdjustment: 0     // Current unemployment levels
     }
   },
   high: {
     name: 'High',
-    description: 'Optimistic growth: TFR 1.77, migration trends toward 75K/year, -2% unemployment',
+    description: 'EUROPOP2025 higher migration and lower mortality paths; baseline fertility; -2% unemployment',
     params: {
-      retirementAge: PORTUGAL_RETIREMENT_AGE_2024,
-      fertilityRate: 1.77,
-      initialNetMigration: 150000,
-      netMigration: 75000,
-      migrationConvergenceYear: 2050,
+      retirementAge: PORTUGAL_RETIREMENT_AGE_2026,
+      fertilityRate: 1.46506,
+      initialNetMigration: 178171,
+      netMigration: 49169,
+      migrationConvergenceYear: 2100,
       mortalityImprovement: { male: 0.015, female: 0.012 },
+      projectionProfile: {
+        fertility: 'baseline',
+        mortality: 'lower',
+        migration: 'higher',
+      },
       workforceEntryAgeShift: -1,   // Earlier workforce entry (better vocational training)
       unemploymentAdjustment: -0.02 // 2% lower unemployment (economic growth)
     }

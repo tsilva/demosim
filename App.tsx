@@ -15,7 +15,7 @@ const TrendChart = dynamic(() => import('./components/TrendChart'), { ssr: false
 const EconomicTrendChart = dynamic(() => import('./components/EconomicTrendChart'), { ssr: false });
 const AboutPanel = dynamic(() => import('./components/AboutPanel'), { ssr: false });
 
-const START_YEAR = 2024;
+const START_YEAR = 2026;
 const END_YEAR = 2100;
 const DEFAULT_SCENARIO: ScenarioType = 'medium';
 let hasTrackedInitialPageView = false;
@@ -69,6 +69,7 @@ const App: React.FC = () => {
 
   const currentData = simulationData.find(d => d.year === currentYear) || simulationData[0];
   const isCustomScenario = selectedScenario === 'custom';
+  const usesProjectionProfile = Boolean(params.projectionProfile);
 
   // Economic chart type state
   const [economicChartType, setEconomicChartType] = useState<EconomicChartType>('burden');
@@ -106,13 +107,42 @@ const App: React.FC = () => {
     setSelectedScenario(scenario);
     if (scenario !== 'custom') {
       setParams(cloneParams(SCENARIO_PRESETS[scenario].params));
+    } else {
+      setParams((previousParams) => {
+        const { projectionProfile: _projectionProfile, ...customParams } = previousParams;
+        return {
+          ...customParams,
+          initialNetMigration: customParams.netMigration,
+          migrationConvergenceYear: START_YEAR,
+        };
+      });
     }
   };
 
   // Handle manual parameter change (auto-switches to custom)
   const handleParamChange = <K extends keyof SimulationParams>(key: K, value: SimulationParams[K]) => {
     setSelectedScenario('custom');
-    setParams(prev => ({ ...prev, [key]: value }));
+    setParams((previousParams) => {
+      const shouldUseCustomDemographicPath =
+        key === 'fertilityRate' ||
+        key === 'netMigration' ||
+        key === 'mortalityImprovement';
+
+      if (!shouldUseCustomDemographicPath) {
+        return { ...previousParams, [key]: value };
+      }
+
+      const { projectionProfile: _projectionProfile, ...customParams } = previousParams;
+      const annualNetMigration = key === 'netMigration'
+        ? value as number
+        : customParams.netMigration;
+      return {
+        ...customParams,
+        [key]: value,
+        initialNetMigration: annualNetMigration,
+        migrationConvergenceYear: START_YEAR,
+      } as SimulationParams;
+    });
   };
 
   // Animation Loop
@@ -345,7 +375,12 @@ const App: React.FC = () => {
                       Fertility Rate (TFR)
                       <InfoTooltip content="Average children per woman. 2.1 is replacement level needed to maintain population without migration." />
                     </span>
-                    <span className="text-pink-400 font-mono font-bold">{params.fertilityRate.toFixed(2)}</span>
+                    <span className="text-pink-400 font-mono font-bold">
+                      {(usesProjectionProfile
+                        ? currentData.assumptions.fertilityRate
+                        : params.fertilityRate
+                      ).toFixed(2)}
+                    </span>
                   </label>
                   <input
                     type="range"
@@ -362,7 +397,7 @@ const App: React.FC = () => {
                   />
                   <p className="text-[10px] text-slate-500 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
-                    Replacement is 2.1
+                    {usesProjectionProfile ? `EUROPOP2025 annual path for ${currentYear}` : 'Replacement is about 2.1'}
                   </p>
                 </div>
 
@@ -370,17 +405,23 @@ const App: React.FC = () => {
                 <div>
                   <label className="flex justify-between text-xs text-slate-400 mb-1">
                     <span className="flex items-center">
-                      Long-run Net Migration
-                      <InfoTooltip content="Annual immigrants minus emigrants after scenario convergence. Presets can start from a different 2024-calibrated value and trend toward this long-run level." />
+                      Annual Net Migration
+                      <InfoTooltip content="Annual immigrants minus emigrants. Presets follow the selected EUROPOP2025 year-by-year path; custom scenarios hold the selected value constant." />
                     </span>
-                    <span className="text-cyan-400 font-mono font-bold">{params.netMigration >= 0 ? '+' : ''}{params.netMigration.toLocaleString()}</span>
+                    <span className="text-cyan-400 font-mono font-bold">
+                      {(usesProjectionProfile ? currentData.assumptions.netMigration : params.netMigration) >= 0 ? '+' : ''}
+                      {(usesProjectionProfile
+                        ? currentData.assumptions.netMigration
+                        : params.netMigration
+                      ).toLocaleString()}
+                    </span>
                   </label>
                   <input
                     type="range"
-                    aria-label="Long-run net migration"
+                    aria-label="Annual net migration"
                     min={-10000}
                     max={150000}
-                    step={1000}
+                    step={1}
                     value={params.netMigration}
                     disabled={!isCustomScenario}
                     onChange={(e) => handleParamChange('netMigration', Number(e.target.value))}
@@ -390,10 +431,7 @@ const App: React.FC = () => {
                   />
                   {!isCustomScenario && (
                     <p className="text-[10px] text-amber-500/70 mt-1 italic">
-                      Scenario locked
-                      {params.initialNetMigration !== undefined && params.initialNetMigration !== params.netMigration
-                        ? ` • starts ${params.initialNetMigration >= 0 ? '+' : ''}${params.initialNetMigration.toLocaleString()}`
-                        : ''}
+                      Scenario locked • EUROPOP2025 annual path for {currentYear}
                     </p>
                   )}
                 </div>
@@ -406,7 +444,9 @@ const App: React.FC = () => {
                       <InfoTooltip content="Annual % reduction in death rates. Higher values mean people live longer, increasing elderly population." />
                     </span>
                     <span className="text-violet-400 font-mono font-bold">
-                      {(params.mortalityImprovement.male * 100).toFixed(1)}%
+                      {usesProjectionProfile
+                        ? 'EUROPOP'
+                        : `${(params.mortalityImprovement.male * 100).toFixed(1)}%`}
                     </span>
                   </label>
                   <input
@@ -428,7 +468,7 @@ const App: React.FC = () => {
                   />
                   <p className="text-[10px] text-slate-500 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
-                    Annual mortality rate reduction
+                    {usesProjectionProfile ? 'Age- and sex-specific annual path' : 'Annual mortality rate reduction'}
                   </p>
                 </div>
 
@@ -498,7 +538,7 @@ const App: React.FC = () => {
               onClick={reset}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded border border-slate-700 py-2 text-xs text-slate-400 transition-colors hover:bg-slate-800"
             >
-              <RefreshCw size={12} /> Reset to 2024 Defaults
+              <RefreshCw size={12} /> Reset to 2026 Baseline
             </button>
           </div>
 
@@ -592,9 +632,9 @@ const App: React.FC = () => {
       <footer className="mt-6 sm:mt-8">
         <AboutPanel />
         <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center text-[10px] text-slate-600 sm:flex-row sm:gap-4">
-          <span>Data based on Eurostat 2024 official statistics</span>
+          <span>2026 INE population stock + EUROPOP2025 assumptions</span>
           <span className="hidden h-1 w-1 rounded-full bg-slate-800 sm:block"></span>
-          <span>Demographic Projection Model v2.0</span>
+          <span>Demographic Projection Model v3.0</span>
         </div>
       </footer>
     </div>

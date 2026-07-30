@@ -11,7 +11,7 @@ const structuredData = [
     '@id': `${siteUrl}#website`,
     name: 'Portugal 2100 Simulator',
     url: siteUrl,
-    description: 'Interactive demographic and economic simulator for Portugal\'s future population structure from 2024 to 2100.',
+    description: 'Interactive demographic and economic simulator for Portugal\'s future population structure from 2026 to 2100.',
     inLanguage: 'en',
     image: `${siteUrl}og-image.png`,
     author: {
@@ -49,7 +49,7 @@ const structuredData = [
     },
     sameAs: ['https://github.com/tsilva/demosim'],
     featureList: [
-      'Population pyramid projection from 2024 to 2100',
+      'Population pyramid projection from 2026 to 2100',
       'Scenario presets for fertility, migration, and mortality',
       'Economic outputs for social security and healthcare burden',
       'Interactive year-by-year simulation controls',
@@ -61,7 +61,7 @@ const structuredData = [
     '@id': `${siteUrl}#dataset`,
     name: 'Portugal demographic simulation baseline inputs',
     url: siteUrl,
-    description: 'Eurostat-calibrated baseline inputs for Portugal\'s 2024 population, fertility, mortality, migration, and economic assumptions used by the simulator.',
+    description: 'INE revised 2026 population stock, Eurostat demographic rates, and EUROPOP2025 projection assumptions used by the simulator.',
     creator: {
       '@type': 'Person',
       name: 'Tiago Silva',
@@ -80,7 +80,7 @@ const structuredData = [
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: 'Portugal 2100 Simulator | Demographics, Aging, Migration, and Economic Pressure',
-  description: 'What happens to Portugal if births stay low, migration rises, or retirement shifts later? Run Eurostat-based 2024-2100 population and economic projections in one interactive simulator.',
+  description: 'What happens to Portugal if births stay low, migration rises, or retirement shifts later? Run INE- and Eurostat-based 2026-2100 population and economic projections in one interactive simulator.',
   applicationName: 'Portugal 2100 Simulator',
   authors: [{ name: 'Tiago Silva' }],
   keywords: [
