@@ -12,8 +12,9 @@
     "preview": "node scripts/dev-server.mjs next start"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
     "lucide-react": "^0.575.0",
-    "next": "^16.2.6",
+    "next": "^16.3.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "recharts": "^3.6.0"
