@@ -1,10 +1,12 @@
-<div align="center">
+<p align="center">
   <img src="./logo.png" alt="demosim" width="420" />
+  <br />
+  <!-- repo-tagline:start -->
+  <strong>📊 Explore Portugal’s demographic and economic future through 2100 🇵🇹</strong>
+  <!-- repo-tagline:end -->
+</p>
 
-  **📊 Explore Portugal's demographic future from 2026 to 2100 with real-time economic impact projections 🇵🇹**
-
-  [Live Demo](https://demosim.tsilva.eu)
-</div>
+[Live Demo](https://demosim.tsilva.eu)
 
 demosim is an interactive Next.js simulator for Portugal's population and economic pressure through 2100. It starts from INE's revised 31 December 2025 resident population and follows EUROPOP2025 fertility, mortality, and migration assumptions in a cohort-component projection model.
 
