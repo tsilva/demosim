@@ -64,3 +64,5 @@ Preset demographic paths use exact annual EUROPOP2025 baseline and sensitivity a
 ## License
 
 [MIT](LICENSE)
+
+Production delivery keeps Vercel secret isolation enabled and distinguishes public configuration from private credentials; see [production delivery](docs/production-delivery.md).
