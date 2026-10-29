@@ -32,5 +32,6 @@
   },
   "overrides": {
     "source-map-js": "1.2.2"
-  }
+  },
+  "packageManager": "npm@11.20.0"
 }

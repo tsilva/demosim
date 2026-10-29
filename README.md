@@ -15,32 +15,32 @@ Use it to adjust fertility, migration, mortality improvement, retirement age, an
 ## Install
 
 ```bash
-git clone git@github.com:tsilva/demosim.git
+git clone https://github.com/tsilva/demosim.git
 cd demosim
-corepack enable
-pnpm install
-pnpm dev
+npm ci --ignore-scripts
+npm run dev -- --port auto
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open the URL printed by the development server.
 
 ## Commands
 
 ```bash
-pnpm install   # install dependencies
-pnpm dev       # start the Next.js dev server
-pnpm build     # build production output
-pnpm start     # serve the production build
-pnpm preview   # alias for pnpm start
+npm ci --ignore-scripts        # install locked dependencies
+npm run dev -- --port auto     # start the Next.js dev server
+npm run build                 # build production output
+npm run start -- --port auto   # serve the production build
+npm run preview -- --port auto # alias for npm run start
 ```
 
 ## Notes
 
-- `pnpm` is required. The repo has a `preinstall` guard and declares `pnpm@10.27.0` in `package.json`.
+- Use Node.js 24 and npm 11.20.0, pinned in `package.json`. CI uses the committed
+  `package-lock.json` with lifecycle scripts disabled; retain the existing `.npmrc` safeguards.
 - The app requires JavaScript in the browser.
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID` is optional. When present, the app loads Google Analytics and tracks page views plus simulator interactions.
 - Runtime data lives in `data/`: the revised 2026 opening population, an exact annual EUROPOP2025 snapshot, and officially calibrated economic assumptions.
-- Refresh EUROPOP data with `pnpm data:update:europop`. The generator rejects a snapshot unless every published cohort transition and birth total reproduces with zero rounding error.
+- Refresh EUROPOP data with `npm run data:update:europop`. The generator rejects a snapshot unless every published cohort transition and birth total reproduces with zero rounding error.
 - Age `100+` is an open cohort, matching Eurostat's published projection structure. The engine checks population balance every projected year in development.
 - Deployment metadata is included for Vercel as a Next.js app.
 
