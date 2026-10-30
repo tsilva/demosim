@@ -65,3 +65,5 @@ logs
 node_modules
 pnpm-debug.log*
 .worktrees/
+/INBOX.md
+/.local/repo-inbox/
