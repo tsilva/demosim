@@ -32,7 +32,7 @@ const InfoTooltip: React.FC<Props> = ({ content, position = 'top' }) => {
     >
       <HelpCircle
         size={12}
-        className="text-slate-500 hover:text-slate-400 cursor-help transition-colors"
+        className="text-slate-400 hover:text-slate-300 cursor-help transition-colors"
       />
       {isVisible && (
         <div

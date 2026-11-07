@@ -8,7 +8,7 @@ const AboutPanel: React.FC = () => {
     <div className="mt-3 sm:mt-4">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="mx-auto flex items-center gap-2 text-[11px] text-slate-500 transition-colors hover:text-slate-400 sm:text-xs"
+        className="mx-auto flex items-center gap-2 text-[11px] text-slate-400 transition-colors hover:text-slate-300 sm:text-xs"
       >
         <Info size={14} />
         About this simulation
@@ -97,7 +97,7 @@ const AboutPanel: React.FC = () => {
             </div>
           </div>
 
-          <p className="mt-4 pt-4 border-t border-slate-800 text-[10px] text-slate-600 text-center">
+          <p className="mt-4 pt-4 border-t border-slate-800 text-[10px] text-slate-400 text-center">
             This simulation is for educational purposes. Real demographic outcomes depend on policy decisions,
             economic conditions, and events not captured in this model.
           </p>

@@ -263,7 +263,7 @@ const App: React.FC = () => {
             {isPlaying ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
           </button>
           <div className="text-right">
-             <div className="text-xs text-slate-500 uppercase tracking-wider">Simulation Year</div>
+             <div className="text-xs text-slate-400 uppercase tracking-wider">Simulation Year</div>
              <div className="text-3xl font-mono font-bold text-white sm:text-4xl">{currentYear}</div>
           </div>
         </div>
@@ -310,7 +310,7 @@ const App: React.FC = () => {
                 </div>
                 {selectedScenario !== 'custom' && (
                   <p
-                    className="text-[10px] text-slate-500 mt-2 italic"
+                    className="text-[10px] text-slate-400 mt-2 italic"
                     dangerouslySetInnerHTML={{ __html: SCENARIO_PRESETS[selectedScenario].description }}
                   />
                 )}
@@ -353,7 +353,7 @@ const App: React.FC = () => {
                     onChange={(e) => handleParamChange('retirementAge', Number(e.target.value))}
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-amber-500"
                   />
-                  <p className="mt-1 text-[10px] italic text-slate-500">
+                  <p className="mt-1 text-[10px] italic text-slate-400">
                     {params.retirementAgePath
                       ? `Current-law EC path for ${currentYear}; editing makes it a fixed age`
                       : 'Fixed for all projected years'}
@@ -375,7 +375,7 @@ const App: React.FC = () => {
                 >
                   <div>
                     <p className="text-xs font-medium text-slate-200">Advanced demographic inputs</p>
-                    <p className="mt-1 text-[10px] text-slate-500">
+                    <p className="mt-1 text-[10px] text-slate-400">
                       Fertility, migration, mortality, workforce entry and employment.
                     </p>
                   </div>
@@ -413,7 +413,7 @@ const App: React.FC = () => {
                       !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
                     }`}
                   />
-                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                  <p className="text-[10px] text-slate-400 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
                     {usesProjectionProfile ? `EUROPOP2025 annual path for ${currentYear}` : 'Replacement is about 2.1'}
                   </p>
@@ -484,7 +484,7 @@ const App: React.FC = () => {
                       !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
                     }`}
                   />
-                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                  <p className="text-[10px] text-slate-400 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
                     {usesProjectionProfile ? 'Age- and sex-specific annual path' : 'Annual mortality rate reduction'}
                   </p>
@@ -514,7 +514,7 @@ const App: React.FC = () => {
                       !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
                     }`}
                   />
-                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                  <p className="text-[10px] text-slate-400 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
                     + = later entry (more education)
                   </p>
@@ -546,7 +546,7 @@ const App: React.FC = () => {
                       !isCustomScenario ? 'bg-slate-800 opacity-60' : 'bg-slate-700'
                     }`}
                   />
-                  <p className="text-[10px] text-slate-500 mt-1 italic">
+                  <p className="text-[10px] text-slate-400 mt-1 italic">
                     {!isCustomScenario && <span className="text-amber-500/70">Scenario locked • </span>}
                     Sign shown is the resulting employment-level change
                   </p>
@@ -598,7 +598,7 @@ const App: React.FC = () => {
               <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
                  <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
                     <div>
-                      <p className="flex items-center text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">
+                      <p className="flex items-center text-[9px] uppercase tracking-tight text-slate-400 lg:text-[10px]">
                         Dependency Ratio
                         <InfoTooltip content="Standard old-age dependency ratio: people aged 65+ per 100 people aged 15-64." />
                       </p>
@@ -613,7 +613,7 @@ const App: React.FC = () => {
 
                  <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
                     <div>
-                      <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Total Population</p>
+                      <p className="text-[9px] uppercase tracking-tight text-slate-400 lg:text-[10px]">Total Population</p>
                       <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
                         {(currentData.totalPopulation / 1000000).toFixed(2)}M
                       </p>
@@ -625,7 +625,7 @@ const App: React.FC = () => {
 
                  <div className="flex min-h-[112px] flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-md lg:min-h-0 lg:flex-row lg:items-center lg:p-4">
                     <div>
-                      <p className="text-[9px] uppercase tracking-tight text-slate-500 lg:text-[10px]">Median Age</p>
+                      <p className="text-[9px] uppercase tracking-tight text-slate-400 lg:text-[10px]">Median Age</p>
                       <p className="mt-1 text-lg font-bold text-slate-200 lg:text-xl">
                         {currentData.medianAge.toFixed(1)}y
                       </p>
@@ -651,7 +651,7 @@ const App: React.FC = () => {
 
       <footer className="mt-6 sm:mt-8">
         <AboutPanel />
-        <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center text-[10px] text-slate-600 sm:flex-row sm:gap-4">
+        <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center text-[10px] text-slate-400 sm:flex-row sm:gap-4">
           <span>2026 INE population stock + EUROPOP2025 assumptions</span>
           <span className="hidden h-1 w-1 rounded-full bg-slate-800 sm:block"></span>
           <span>Demographic Projection Model v3.0</span>

@@ -191,7 +191,7 @@ const PyramidChart: React.FC<Props> = ({ data, retirementAge, medianAge }) => {
           </div>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-slate-500 sm:gap-x-6 sm:text-xs">
+      <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-slate-400 sm:gap-x-6 sm:text-xs">
         <div className="flex items-center gap-1">
           <div className="h-3 w-3 bg-cyan-500"></div> Youth (0-14)
         </div>

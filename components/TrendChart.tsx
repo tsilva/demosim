@@ -63,7 +63,7 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
           </LineChart>
         )}
       </div>
-      <p className="mt-2 text-center text-[11px] text-slate-500 sm:text-xs">
+      <p className="mt-2 text-center text-[11px] text-slate-400 sm:text-xs">
         People aged 65+ per 100 aged 15-64
       </p>
     </div>
