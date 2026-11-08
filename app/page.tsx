@@ -1,4 +1,8 @@
 import App from '../App';
+import { DEFAULT_SCENARIO, SCENARIO_PRESETS, START_YEAR } from '../types';
+import { runSimulation } from '../utils/simulation';
+
+const [initialData] = runSimulation(START_YEAR, START_YEAR, SCENARIO_PRESETS[DEFAULT_SCENARIO].params);
 
 export default function HomePage() {
   return (
@@ -20,7 +24,7 @@ export default function HomePage() {
           </p>
         </section>
       </noscript>
-      <App />
+      <App initialData={initialData} />
     </>
   );
 }

@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
-import { YearData, SimulationParams, ScenarioType, SCENARIO_PRESETS } from './types';
-import { runSimulation } from './utils/simulation';
+import { YearData, SimulationParams, ScenarioType, DEFAULT_SCENARIO, SCENARIO_PRESETS, START_YEAR } from './types';
 import { initGoogleAnalytics, trackEvent, trackPageView } from './utils/analytics';
 import PyramidChart from './components/PyramidChart';
 import type { EconomicChartType } from './components/EconomicTrendChart';
@@ -15,9 +14,7 @@ const TrendChart = dynamic(() => import('./components/TrendChart'));
 const EconomicTrendChart = dynamic(() => import('./components/EconomicTrendChart'));
 const AboutPanel = dynamic(() => import('./components/AboutPanel'), { ssr: false });
 
-const START_YEAR = 2026;
 const END_YEAR = 2100;
-const DEFAULT_SCENARIO: ScenarioType = 'medium';
 let hasTrackedInitialPageView = false;
 
 const formatRetirementAge = (age: number): string => {
@@ -43,7 +40,7 @@ const cloneParams = (source: SimulationParams): SimulationParams => ({
   })),
 });
 
-const App: React.FC = () => {
+const App: React.FC<{ initialData: YearData }> = ({ initialData }) => {
   // --- State ---
   const [currentYear, setCurrentYear] = useState(START_YEAR);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -54,23 +51,28 @@ const App: React.FC = () => {
   const secondaryContentRef = useRef<HTMLDivElement | null>(null);
   const [shouldRenderTrendCharts, setShouldRenderTrendCharts] = useState(false);
   const [shouldRenderSecondaryContent, setShouldRenderSecondaryContent] = useState(false);
-  
-  const initialSimulationData = useMemo(() => {
-    return runSimulation(START_YEAR, START_YEAR, params);
-  }, [params]);
+  const [simulation, setSimulation] = useState<typeof import('./utils/simulation')>();
+  const [simulationLoadFailed, setSimulationLoadFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    import('./utils/simulation').then(
+      (module) => { if (active) setSimulation(module); },
+      () => { if (active) setSimulationLoadFailed(true); },
+    );
+
+    return () => { active = false; };
+  }, []);
 
   const needsFullSimulation = shouldRenderTrendCharts || currentYear !== START_YEAR || isPlaying;
 
   // Cache full simulation results only when controls or visible charts need the full history.
   const simulationData = useMemo(() => {
-    if (!needsFullSimulation) {
-      return initialSimulationData;
-    }
+    return simulation?.runSimulation(START_YEAR, needsFullSimulation ? END_YEAR : START_YEAR, params);
+  }, [simulation, needsFullSimulation, params]);
 
-    return runSimulation(START_YEAR, END_YEAR, params);
-  }, [initialSimulationData, needsFullSimulation, params]);
-
-  const currentData = simulationData.find(d => d.year === currentYear) || simulationData[0];
+  const currentData = simulationData?.find(d => d.year === currentYear) ?? simulationData?.[0] ?? initialData;
   const chartHistory = shouldRenderTrendCharts ? simulationData : undefined;
   const isCustomScenario = selectedScenario === 'custom';
   const usesProjectionProfile = Boolean(params.projectionProfile);
@@ -258,7 +260,8 @@ const App: React.FC = () => {
         <div className="flex w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2.5 shadow-lg backdrop-blur-sm sm:px-4 sm:py-3 lg:w-auto lg:min-w-[240px]">
           <button 
             onClick={togglePlay}
-            className={`rounded-full p-2.5 shadow-lg transition-all sm:p-3 ${isPlaying ? 'bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/50' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}
+            disabled={!simulation}
+            className={`rounded-full p-2.5 shadow-lg transition-all disabled:opacity-60 sm:p-3 ${isPlaying ? 'bg-amber-500/20 text-amber-500 ring-2 ring-amber-500/50' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}
             title={isPlaying ? "Pause Simulation" : "Start Simulation"}
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
@@ -277,16 +280,28 @@ const App: React.FC = () => {
         <div className="order-1 space-y-4 sm:space-y-6 lg:order-1 lg:col-span-3">
           
           {/* Controls Card */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm sm:p-5">
+          <fieldset
+            disabled={!simulation}
+            aria-label="Simulation parameters"
+            className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/50 p-4 shadow-lg backdrop-blur-sm disabled:opacity-60 sm:p-5"
+          >
             <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2 font-semibold text-slate-200">
                 <Settings size={18} className="text-emerald-400" /> Simulation Parameters
               </div>
               <span className={`rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] ${isCustomScenario ? 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/40' : 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'}`}>
-                {isCustomScenario ? 'Custom' : 'Preset'}
+                {simulation ? (isCustomScenario ? 'Custom' : 'Preset') : (
+                  <span role="status">{simulationLoadFailed ? 'Load failed' : 'Loading'}</span>
+                )}
               </span>
             </div>
-            
+
+            {simulationLoadFailed && (
+              <p className="mb-4 text-xs text-slate-400">
+                The projection data could not load.{' '}
+                <a className="underline" href="/">Reload the page</a>
+              </p>
+            )}
             <div className="space-y-5">
               {/* Scenario Selection */}
               <div>
@@ -561,7 +576,7 @@ const App: React.FC = () => {
             >
               <RefreshCw size={12} /> Reset to 2026 Baseline
             </button>
-          </div>
+          </fieldset>
 
         </div>
 

@@ -46,6 +46,9 @@ export interface YearData {
 // Scenario type for preset configurations
 export type ScenarioType = 'low' | 'medium' | 'high' | 'custom';
 
+export const START_YEAR = 2026;
+export const DEFAULT_SCENARIO = 'medium';
+
 // Mortality improvement rates by sex (annual rate of decrease in age-specific mortality)
 export interface MortalityImprovementRate {
   male: number;   // Annual improvement rate (e.g., 0.01 for 1%)
