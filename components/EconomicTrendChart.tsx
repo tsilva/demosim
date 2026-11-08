@@ -15,7 +15,7 @@ import useChartContainerReady from './useChartContainerReady';
 export type EconomicChartType = 'ssBalance' | 'burden' | 'spendingShare';
 
 interface Props {
-  fullHistory: YearData[];
+  fullHistory: YearData[] | undefined;
   currentYear: number;
   chartType: EconomicChartType;
   onChartTypeChange: (type: EconomicChartType) => void;
@@ -24,7 +24,7 @@ interface Props {
 const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartType, onChartTypeChange }) => {
   const { containerRef, isReady, dimensions } = useChartContainerReady();
 
-  const chartData = fullHistory.map(d => ({
+  const chartData = fullHistory?.map(d => ({
     year: d.year,
     ssBalance: d.economic.ssBalance / 1e9, // Convert to billions
     burden: d.economic.ageRelatedSpendingPerWorker,
@@ -113,7 +113,7 @@ const EconomicTrendChart: React.FC<Props> = ({ fullHistory, currentYear, chartTy
       </h2>
 
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
-        {isReady && (
+        {isReady && chartData && (
           <LineChart
             width={dimensions.width}
             height={dimensions.height}

@@ -13,7 +13,7 @@ import InfoTooltip from './InfoTooltip';
 import useChartContainerReady from './useChartContainerReady';
 
 interface Props {
-  fullHistory: YearData[];
+  fullHistory: YearData[] | undefined;
   currentYear: number;
 }
 
@@ -27,7 +27,7 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
         <InfoTooltip content="Standard old-age dependency ratio over time: people aged 65+ per 100 people aged 15-64. Higher values indicate more age-related fiscal pressure." />
       </h2>
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
-        {isReady && (
+        {isReady && fullHistory && (
           <LineChart
             width={dimensions.width}
             height={dimensions.height}

@@ -11,8 +11,8 @@ import type { EconomicChartType } from './components/EconomicTrendChart';
 import InfoTooltip from './components/InfoTooltip';
 
 const EconomicMetrics = dynamic(() => import('./components/EconomicMetrics'), { ssr: false });
-const TrendChart = dynamic(() => import('./components/TrendChart'), { ssr: false });
-const EconomicTrendChart = dynamic(() => import('./components/EconomicTrendChart'), { ssr: false });
+const TrendChart = dynamic(() => import('./components/TrendChart'));
+const EconomicTrendChart = dynamic(() => import('./components/EconomicTrendChart'));
 const AboutPanel = dynamic(() => import('./components/AboutPanel'), { ssr: false });
 
 const START_YEAR = 2026;
@@ -71,6 +71,7 @@ const App: React.FC = () => {
   }, [initialSimulationData, needsFullSimulation, params]);
 
   const currentData = simulationData.find(d => d.year === currentYear) || simulationData[0];
+  const chartHistory = shouldRenderTrendCharts ? simulationData : undefined;
   const isCustomScenario = selectedScenario === 'custom';
   const usesProjectionProfile = Boolean(params.projectionProfile);
 
@@ -572,19 +573,15 @@ const App: React.FC = () => {
 
           <div ref={trendChartsRef} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="h-[220px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[250px] sm:p-4 xl:h-[200px]">
-               {shouldRenderTrendCharts && (
-                 <TrendChart fullHistory={simulationData} currentYear={currentYear} />
-               )}
+               <TrendChart fullHistory={chartHistory} currentYear={currentYear} />
             </div>
             <div className="h-[230px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[260px] sm:p-4 xl:h-[200px]">
-               {shouldRenderTrendCharts && (
-                 <EconomicTrendChart
-                   fullHistory={simulationData}
-                   currentYear={currentYear}
-                   chartType={economicChartType}
-                   onChartTypeChange={setEconomicChartType}
-                 />
-               )}
+               <EconomicTrendChart
+                 fullHistory={chartHistory}
+                 currentYear={currentYear}
+                 chartType={economicChartType}
+                 onChartTypeChange={setEconomicChartType}
+               />
             </div>
           </div>
 
