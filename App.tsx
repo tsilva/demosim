@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
+import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, GitFork } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, DEFAULT_SCENARIO, SCENARIO_PRESETS, START_YEAR } from './types';
 import { initGoogleAnalytics, trackEvent, trackPageView } from './utils/analytics';
 import PyramidChart from './components/PyramidChart';
-import type { EconomicChartType } from './components/EconomicTrendChart';
+import TrendChart from './components/TrendChart';
+import EconomicTrendChart, { type EconomicChartType } from './components/EconomicTrendChart';
 import InfoTooltip from './components/InfoTooltip';
 
 const EconomicMetrics = dynamic(() => import('./components/EconomicMetrics'), { ssr: false });
-const TrendChart = dynamic(() => import('./components/TrendChart'));
-const EconomicTrendChart = dynamic(() => import('./components/EconomicTrendChart'));
 const AboutPanel = dynamic(() => import('./components/AboutPanel'), { ssr: false });
 
 const END_YEAR = 2100;
@@ -244,7 +243,7 @@ const App: React.FC<{ initialData: YearData }> = ({ initialData }) => {
         aria-label="View source on GitHub"
         className="absolute right-3 top-3 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white sm:right-4 sm:top-4 md:right-8 md:top-8"
       >
-        <Github size={20} />
+        <GitFork size={20} />
       </a>
 
       {/* Header */}
@@ -588,12 +587,13 @@ const App: React.FC<{ initialData: YearData }> = ({ initialData }) => {
 
           <div ref={trendChartsRef} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="h-[220px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[250px] sm:p-4 xl:h-[200px]">
-               <TrendChart fullHistory={chartHistory} currentYear={currentYear} />
+               <TrendChart fullHistory={chartHistory} currentYear={currentYear} showPlot={shouldRenderTrendCharts} />
             </div>
             <div className="h-[230px] min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-lg sm:h-[260px] sm:p-4 xl:h-[200px]">
                <EconomicTrendChart
                  fullHistory={chartHistory}
                  currentYear={currentYear}
+                 showPlot={shouldRenderTrendCharts}
                  chartType={economicChartType}
                  onChartTypeChange={setEconomicChartType}
                />
