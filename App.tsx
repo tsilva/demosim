@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, Github } from 'lucide-react';
+import { Settings, Play, Pause, RefreshCw, TrendingUp, Users, GitFork } from 'lucide-react';
 import { YearData, SimulationParams, ScenarioType, DEFAULT_SCENARIO, SCENARIO_PRESETS, START_YEAR } from './types';
 import { initGoogleAnalytics, trackEvent, trackPageView } from './utils/analytics';
 import PyramidChart from './components/PyramidChart';
@@ -244,7 +244,7 @@ const App: React.FC<{ initialData: YearData }> = ({ initialData }) => {
         aria-label="View source on GitHub"
         className="absolute right-3 top-3 z-10 rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-emerald-400/50 hover:text-white sm:right-4 sm:top-4 md:right-8 md:top-8"
       >
-        <Github size={20} />
+        <GitFork size={20} />
       </a>
 
       {/* Header */}
