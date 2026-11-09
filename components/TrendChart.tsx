@@ -1,23 +1,18 @@
 import React from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import { YearData } from '../types';
 import InfoTooltip from './InfoTooltip';
 import useChartContainerReady from './useChartContainerReady';
 
+const TrendPlot = dynamic(() => import('./TrendPlot'));
+
 interface Props {
   fullHistory: YearData[] | undefined;
   currentYear: number;
+  showPlot: boolean;
 }
 
-const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
+const TrendChart: React.FC<Props> = ({ fullHistory, currentYear, showPlot }) => {
   const { containerRef, isReady, dimensions } = useChartContainerReady();
 
   return (
@@ -27,40 +22,16 @@ const TrendChart: React.FC<Props> = ({ fullHistory, currentYear }) => {
         <InfoTooltip content="Standard old-age dependency ratio over time: people aged 65+ per 100 people aged 15-64. Higher values indicate more age-related fiscal pressure." />
       </h2>
       <div ref={containerRef} className="min-h-0 min-w-0 flex-grow">
-        {isReady && fullHistory && (
-          <LineChart
+        {showPlot && (
+          <TrendPlot
             width={dimensions.width}
             height={dimensions.height}
-            data={fullHistory}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-            <XAxis
-              dataKey="year"
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              domain={['auto', 'auto']}
-            />
-            <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }}
-              itemStyle={{ color: '#fbbf24' }}
-              labelStyle={{ color: '#94a3b8' }}
-              formatter={(value: number) => [`${value.toFixed(1)}%`, 'Ratio']}
-            />
-            <ReferenceLine x={currentYear} stroke="#fbbf24" strokeDasharray="3 3" />
-            <Line
-              type="monotone"
-              dataKey="oldAgeDependencyRatio"
-              stroke="#fbbf24"
-              strokeWidth={3}
-              dot={false}
-              activeDot={{ r: 6, fill: '#fbbf24' }}
-              isAnimationActive={false}
-            />
-          </LineChart>
+            data={isReady ? fullHistory : undefined}
+            currentYear={currentYear}
+            dataKey="oldAgeDependencyRatio"
+            stroke="#fbbf24"
+            formatter={(value) => [`${value.toFixed(1)}%`, 'Ratio']}
+          />
         )}
       </div>
       <p className="mt-2 text-center text-[11px] text-slate-400 sm:text-xs">
