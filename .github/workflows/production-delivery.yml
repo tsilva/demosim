@@ -117,7 +117,7 @@ jobs:
     with:
       project_id: prj_WoomPuyNu3D4MPSkcMVlX9GkTerV
       project_name: demosim
-      production_domains: '["demosim.tsilva.eu","demosim.vercel.app"]'
+      production_domains: '["demosim.tsilva.eu"]'
       public_environment: '["NEXT_PUBLIC_GA_MEASUREMENT_ID"]'
       promote: ${{ !inputs.stage_prebuilt }}
     secrets:
