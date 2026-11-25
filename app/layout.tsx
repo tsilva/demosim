@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
-import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const siteUrl = 'https://demosim.tsilva.eu/';
@@ -174,7 +173,6 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
-        <Analytics />
       </body>
     </html>
   );
